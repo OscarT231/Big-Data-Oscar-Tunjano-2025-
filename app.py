@@ -30,16 +30,41 @@ mongo = MongoDB(MONGO_URI, MONGO_DB)
 elastic = ElasticSearch(ELASTIC_CLOUD_URL, ELASTIC_API_KEY)
 
 # ==================== RUTAS ====================
+####RUTA DE LANDINGN####
 @app.route('/')
 def landing():
     """Landing page pública"""
     return render_template('landing.html', version=VERSION_APP, creador=CREATOR_APP)
 
+@app.route('/login', methods=['GET', 'POST'])
+####RUTA DE LOGIN CON VALIDACIÓN####
+def login():
+    """Página de login con validación"""
+    if request.method == 'POST':
+        usuario = request.form.get('usuario')
+        password = request.form.get('password')
+        
+        # Validar usuario en MongoDB
+        user_data = mongo.validar_usuario(usuario, password, MONGO_COLECCION)
+        
+        if user_data:
+            # Guardar sesión
+            session['usuario'] = usuario
+            session['permisos'] = user_data.get('permisos', {})
+            session['logged_in'] = True
+            
+            flash('¡Bienvenido! Inicio de sesión exitoso', 'success')
+            return redirect(url_for('admin'))
+        else:
+            flash('Usuario o contraseña incorrectos', 'danger')
+    
+    return render_template('login.html')
+
 # ==================== MAIN ====================
 if __name__ == '__main__':
     # Crear carpetas necesarias
     Funciones.crear_carpeta('static/uploads')
-    
+
     # Verificar conexiones
     print("\n" + "="*50)
     print("VERIFICANDO CONEXIONES")
