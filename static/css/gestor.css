@@ -1,23 +1,28 @@
 :root {
-    /* Colores principales */
-    --primary: #1E3A8A;        /* Azul concentración */
-    --primary-light: #06B6D4;  /* Cian energía */
-    --background: #FFFFFF;
-    --text: #0F172A;
+    /* Paleta educativa basada en psicología del color */
+    --edu-blue: #2563EB;        /* Confianza, concentración */
+    --edu-blue-light: #60A5FA;  /* Claridad mental */
+    --edu-green: #34D399;       /* Aprendizaje y calma */
+    --edu-yellow: #FACC15;      /* Estímulo suave */
+    --edu-lavender: #A78BFA;    /* Creatividad y memoria */
+    
+    /* Bases */
+    --background: #F9FAFB;
+    --text: #1E293B;
 
-    /* Colores gamificación */
+    /* Estados (gamificación suave) */
     --success: #22C55E;
     --warning: #EAB308;
     --error: #EF4444;
-    --reward: #7C3AED;
 
-    /* Fondo suave educativo */
-    --bg-gradient-start: #E0F2FE; 
-    --bg-gradient-end: #F0F9FF;  
+    /* Fondos suaves educativos */
+    --gradient-start: #E3F2FD;   /* Azul pastel educativo */
+    --gradient-end: #E8F5E9;     /* Verde muy suave */
 }
 
+/* Background global */
 body {
-    background: linear-gradient(to right, var(--bg-gradient-start), var(--bg-gradient-end));
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -25,44 +30,48 @@ body {
     color: var(--text);
 }
 
-/* Encabezado */
+/* Encabezado estilo educativo */
 .header {
-    background-color: var(--primary);
-    padding: 1.2rem;
+    background: linear-gradient(90deg, var(--edu-blue), var(--edu-blue-light));
+    padding: 1.4rem;
     text-align: center;
     color: white;
-    font-size: 1.5rem;
-    font-weight: bold;
-    letter-spacing: 0.5px;
-    box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    border-bottom: 4px solid var(--edu-green);
 }
 
-/* Contenedor central */
+/* Contenido central */
 .container {
-    background-color: #F8FAFC;
-    padding: 2rem;
-    border-radius: 16px;
+    background-color: white;
+    padding: 2.2rem;
+    border-radius: 18px;
     margin: 2rem auto;
-    max-width: 900px;
-    box-shadow: 0px 4px 14px rgba(0,0,0,0.12);
-    border: 2px solid var(--primary-light);
-    animation: fadeIn 0.4s ease-in-out;
+    max-width: 950px;
+
+    box-shadow: 0px 4px 16px rgba(0,0,0,0.10);
+    border: 2px solid var(--edu-blue-light);
+
+    animation: fadeIn 0.5s ease-in-out;
 }
 
 /* Footer */
 footer {
-    background-color: var(--primary-light);
-    padding: 1rem;
-    margin-top: 2rem;
+    background: linear-gradient(90deg, var(--edu-blue-light), var(--edu-green));
+    padding: 1.2rem;
+    margin-top: 3rem;
     text-align: center;
     color: white;
-    font-size: 0.95rem;
-    letter-spacing: 0.3px;
-    border-top: 3px solid var(--primary);
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    border-top: 4px solid var(--edu-blue);
 }
 
-/* Animación suave */
+/* Animación */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
