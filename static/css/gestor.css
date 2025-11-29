@@ -1,32 +1,68 @@
+:root {
+    /* Colores principales */
+    --primary: #1E3A8A;        /* Azul concentración */
+    --primary-light: #06B6D4;  /* Cian energía */
+    --background: #FFFFFF;
+    --text: #0F172A;
+
+    /* Colores gamificación */
+    --success: #22C55E;
+    --warning: #EAB308;
+    --error: #EF4444;
+    --reward: #7C3AED;
+
+    /* Fondo suave educativo */
+    --bg-gradient-start: #E0F2FE; 
+    --bg-gradient-end: #F0F9FF;  
+}
 
 body {
-    background: linear-gradient(to right, #f9cbac, #f7f7f1);
+    background: linear-gradient(to right, var(--bg-gradient-start), var(--bg-gradient-end));
     min-height: 100vh;
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Inter', Arial, sans-serif;
+    color: var(--text);
 }
 
+/* Encabezado */
 .header {
-    background-color: rgba(138, 193, 242, 0.95);
-    padding: 1rem;
+    background-color: var(--primary);
+    padding: 1.2rem;
     text-align: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
 }
 
+/* Contenedor central */
 .container {
-    background-color: rgba(130, 180, 201, 0.92);
+    background-color: #F8FAFC;
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 16px;
     margin: 2rem auto;
     max-width: 900px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0px 4px 14px rgba(0,0,0,0.12);
+    border: 2px solid var(--primary-light);
+    animation: fadeIn 0.4s ease-in-out;
 }
 
+/* Footer */
 footer {
-    background-color: rgba(80, 129, 242, 0.95);
+    background-color: var(--primary-light);
     padding: 1rem;
     margin-top: 2rem;
     text-align: center;
-    color: #ffffff;
-    font-size: 0.9rem;
+    color: white;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    border-top: 3px solid var(--primary);
+}
+
+/* Animación suave */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
