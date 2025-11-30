@@ -41,7 +41,7 @@ def landing():
 def about():
     """Página About"""
     return render_template('about.html', version=VERSION_APP, creador=CREATOR_APP)
-
+############### RUTAS DE MONGO INICIO #################
 ####RUTA DE LOGIN CON VALIDACIÓN####
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -65,6 +65,155 @@ def login():
             flash('Usuario o contraseña incorrectos', 'danger')
     
     return render_template('login.html')
+
+### RUTA DE LISTAR USUARIOS ###
+@app.route('/listar-usuarios')
+def listar_usuarios():
+    try:
+
+        usuarios = mongo.listar_usuarios(MONGO_COLECCION)
+        
+        # Convertir ObjectId a string para serialización JSON
+        for usuario in usuarios:
+            usuario['_id'] = str(usuario['_id'])
+        
+        return jsonify(usuarios)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500 
+    
+### RUTA GESTIONAR USUARIOS ###
+@app.route('/gestor_usuarios')
+def gestor_usuarios():
+    """Página de gestión de usuarios (protegida requiere login y permiso admin_usuarios) """
+    if not session.get('logged_in'):
+        flash('Por favor, inicia sesión para acceder a esta página', 'warning')
+        return redirect(url_for('login'))
+    
+    permisos = session.get('permisos', {})
+    if not permisos.get('admin_usuarios'):
+        flash('No tiene permisos para gestionar usuarios', 'danger')
+        return redirect(url_for('admin'))
+    
+    return render_template('gestor_usuarios.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
+
+### RUTA CREAR USUARIO ###
+@app.route('/crear-usuario', methods=['POST'])
+def crear_usuario():
+    """API para crear un nuevo usuario"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para crear usuarios'}), 403
+        
+        data = request.get_json()
+        usuario = data.get('usuario')
+        password = data.get('password')
+        permisos_usuario = data.get('permisos', {})
+        
+        if not usuario or not password:
+            return jsonify({'success': False, 'error': 'Usuario y password son requeridos'}), 400
+        
+        # Verificar si el usuario ya existe
+        usuario_existente = mongo.obtener_usuario(usuario, MONGO_COLECCION)
+        if usuario_existente:
+            return jsonify({'success': False, 'error': 'El usuario ya existe'}), 400
+        
+        # Crear usuario
+        resultado = mongo.crear_usuario(usuario, password, permisos_usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al crear usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+### RUTA ACTUALIZAR USUARIO ###
+@app.route('/actualizar-usuario', methods=['POST'])
+def actualizar_usuario():
+    """API para actualizar un usuario existente"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para actualizar usuarios'}), 403
+        
+        data = request.get_json()
+        usuario_original = data.get('usuario_original')
+        datos_usuario = data.get('datos', {})
+        
+        if not usuario_original:
+            return jsonify({'success': False, 'error': 'Usuario original es requerido'}), 400
+        
+        # Verificar si el usuario existe
+        usuario_existente = mongo.obtener_usuario(usuario_original, MONGO_COLECCION)
+        if not usuario_existente:
+            return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+        
+        # Si el nombre de usuario cambió, verificar que no exista otro con ese nombre
+        nuevo_usuario = datos_usuario.get('usuario')
+        if nuevo_usuario and nuevo_usuario != usuario_original:
+            usuario_duplicado = mongo.obtener_usuario(nuevo_usuario, MONGO_COLECCION)
+            if usuario_duplicado:
+                return jsonify({'success': False, 'error': 'Ya existe otro usuario con ese nombre'}), 400
+        
+        # Actualizar usuario
+        resultado = mongo.actualizar_usuario(usuario_original, datos_usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al actualizar usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+### RUTA ELIMINAR USUARIO ###
+@app.route('/eliminar-usuario', methods=['POST'])
+def eliminar_usuario():
+    """API para eliminar un usuario"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para eliminar usuarios'}), 403
+        
+        data = request.get_json()
+        usuario = data.get('usuario')
+        
+        if not usuario:
+            return jsonify({'success': False, 'error': 'Usuario es requerido'}), 400
+        
+        # Verificar si el usuario existe
+        usuario_existente = mongo.obtener_usuario(usuario, MONGO_COLECCION)
+        if not usuario_existente:
+            return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+        
+        # No permitir eliminar al usuario actual
+        if usuario == session.get('usuario'):
+            return jsonify({'success': False, 'error': 'No puede eliminarse a sí mismo'}), 400
+        
+        # Eliminar usuario
+        resultado = mongo.eliminar_usuario(usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al eliminar usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+############### RUTAS DE MONGO FIN #################
+
 #### RUTA DE ADMIN ####
 @app.route('/admin')
 def admin():
