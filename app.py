@@ -17,7 +17,7 @@ MONGO_COLECCION = os.getenv('MONGO_COLECCION', 'usuario_roles')
 
 
 # Configuración ElasticSearch Cloud
-ELASTIC_CLOUD_URL       = os.getenv('ELASTIC_CLOUD_URL')
+ELASTIC_CLOUD_ID       = os.getenv('ELASTIC_CLOUD_ID')
 ELASTIC_API_KEY         = os.getenv('ELASTIC_API_KEY')
 ELASTIC_INDEX_DEFAULT   = os.getenv('ELASTIC_INDEX_DEFAULT', 'index_cuentos')
 
@@ -27,7 +27,7 @@ CREATOR_APP = "OscarDanTR"
 
 # Inicializar conexiones
 mongo = MongoDB(MONGO_URI, MONGO_DB)
-elastic = ElasticSearch(ELASTIC_CLOUD_URL, ELASTIC_API_KEY)
+elastic = ElasticSearch(ELASTIC_CLOUD_ID, ELASTIC_API_KEY)
 
 # ==================== RUTAS ====================
 ####RUTA DE LANDINGN####

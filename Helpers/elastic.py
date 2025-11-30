@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Any
 import json
 
 class ElasticSearch:
-    def __init__(self, cloud_url: str, api_key: str):
+    def __init__(self, cloud_id: str, api_key: str):
         """
         Inicializa conexión a ElasticSearch Cloud
         
@@ -12,9 +12,8 @@ class ElasticSearch:
             api_key: API Key para autenticación
         """
         self.client = Elasticsearch(
-            cloud_url,
-            api_key=api_key,
-            verify_certs=True
+            cloud_id=cloud_id,
+            api_key=api_key
         )
         
     def test_connection(self) -> bool:
