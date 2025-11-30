@@ -22,7 +22,7 @@ ELASTIC_API_KEY         = os.getenv('ELASTIC_API_KEY')
 ELASTIC_INDEX_DEFAULT   = os.getenv('ELASTIC_INDEX_DEFAULT', 'index_cuentos')
 
 # Versión de la aplicación
-VERSION_APP = "1.0.0"
+VERSION_APP = "1.2.0"
 CREATOR_APP = "OscarDanTR"
 
 # Inicializar conexiones
@@ -92,3 +92,5 @@ if __name__ == '__main__':
         print("✅ ElasticSearch Cloud: Conectado")
     else:
         print("❌ ElasticSearch Cloud: Error de conexión") 
+    # Ejecutar la aplicación (localmente para pruebas)
+    app.run(debug=True, host='0.0.0.0', port=5000)
