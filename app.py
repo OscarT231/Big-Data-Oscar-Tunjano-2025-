@@ -214,6 +214,80 @@ def eliminar_usuario():
 
 ############### RUTAS DE MONGO FIN #################
 
+############### RUTAS DE ELASTIC INICIO #################
+#### RUTA GESTOR ELASTIC ###
+@app.route('/gestor_elastic')
+def gestor_elastic():
+    """Página de gestión de ElasticSearch (protegida requiere login y permiso admin_elastic)"""
+    if not session.get('logged_in'):
+        flash('Por favor, inicia sesión para acceder a esta página', 'warning')
+        return redirect(url_for('login'))
+    
+    permisos = session.get('permisos', {})
+    if not permisos.get('admin_elastic'):
+        flash('No tiene permisos para gestionar ElasticSearch', 'danger')
+        return redirect(url_for('admin'))
+    
+    return render_template('gestor_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
+
+#### RUTA LISTAR ÍNDICES ELASTIC ###
+@app.route('/listar-indices-elastic')
+def listar_indices_elastic():
+    """API para listar índices de ElasticSearch"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_elastic'):
+            return jsonify({'error': 'No tiene permisos para gestionar ElasticSearch'}), 403
+        
+        indices = elastic.listar_indices()
+        return jsonify(indices)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+#### RUTA EJECUTAR QUERY ELASTIC ###
+@app.route('/ejecutar-query-elastic', methods=['POST'])
+def ejecutar_query_elastic():
+    """API para ejecutar una query en ElasticSearch"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_elastic'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para gestionar ElasticSearch'}), 403
+        
+        data = request.get_json()
+        query_json = data.get('query')
+        
+        if not query_json:
+            return jsonify({'success': False, 'error': 'Query es requerida'}), 400
+        
+        resultado = elastic.ejecutar_query(query_json)
+        return jsonify(resultado)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+#### RUTA CARGAR DOCUMENTOS A ELASTIC ###
+@app.route('/cargar_doc_elastic')
+def cargar_doc_elastic():
+    """Página de carga de documentos a ElasticSearch (protegida requiere login y permiso admin_data_elastic)"""
+    if not session.get('logged_in'):
+        flash('Por favor, inicia sesión para acceder a esta página', 'warning')
+        return redirect(url_for('login'))
+    
+    permisos = session.get('permisos', {})
+    if not permisos.get('admin_data_elastic'):
+        flash('No tiene permisos para cargar datos a ElasticSearch', 'danger')
+        return redirect(url_for('admin'))
+    
+    return render_template('documentos_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
+
+
+############### RUTAS DE ELASTIC FIN #################
+
 #### RUTA DE ADMIN ####
 @app.route('/admin')
 def admin():
