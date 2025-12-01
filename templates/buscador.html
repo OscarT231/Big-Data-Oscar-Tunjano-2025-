@@ -73,4 +73,190 @@
 
     <!-- Cargando -->
     <div id="div_cargando" class="text-center mt-4" style="display:none;">
-        <div class="spinner-border tex
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Buscando documentos...</p>
+    </div>
+
+    <!-- Resultados -->
+    <div id="divResultados" class="resultados-container" style="display:none;">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Resultados de la búsqueda - Total: <span id="totalResultados">0</span></h5>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <!-- Aggregations -->
+                    <div class="col-md-3">
+                        <div class="aggs-list">
+                            <h6 class="mb-3">Agregaciones</h6>
+                            <div id="divAggregations"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de resultados -->
+                    <div class="col-md-9">
+                        <div class="tabla-resultados">
+                            <table class="table table-striped table-bordered table-hover">
+                                <thead class="table-dark">
+                                <tr>
+                                    <th style="width:5%;">#</th>
+                                    <th style="width:10%;">ID</th>
+                                    <th style="width:10%;">Score</th>
+                                    <th style="width:15%;">Índice</th>
+                                    <th style="width:60%;">Contenido</th>
+                                </tr>
+                                </thead>
+                                <tbody id="tablaResultados"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="divError" class="alert alert-danger mt-4" style="display:none;">
+        <strong>Error:</strong> <span id="mensajeError"></span>
+    </div>
+</div>
+
+<footer class="text-center mt-5">
+    <p class="mb-0">Creado por {{ creador }}</p>
+    <p class="mb-0" id="current-year"></p>
+    <p class="mb-0" id="version_app">{{ version }}</p>
+</footer>
+
+<script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    function buscar(event) {
+        event.preventDefault();
+
+        const textoBuscar = document.getElementById('textoBuscar').value.trim();
+        if (!textoBuscar) return alert("Ingrese un texto");
+
+        document.getElementById('divResultados').style.display = 'none';
+        document.getElementById('divError').style.display = 'none';
+        document.getElementById('div_cargando').style.display = 'block';
+
+        fetch('/buscar-elastic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texto: textoBuscar, campo: '_all' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('div_cargando').style.display = 'none';
+
+            if (data.success) mostrarResultados(data);
+            else mostrarError(data.error || "Error desconocido");
+        })
+        .catch(err => {
+            document.getElementById('div_cargando').style.display = 'none';
+            mostrarError("Error al conectar con el servidor");
+        });
+    }
+
+    function mostrarResultados(data) {
+        document.getElementById('totalResultados').textContent = data.total || 0;
+        mostrarAggregations(data.aggs || {});
+        mostrarHits(data.hits || []);
+        document.getElementById('divResultados').style.display = 'block';
+    }
+
+    function mostrarAggregations(aggs) {
+        const div = document.getElementById('divAggregations');
+        div.innerHTML = '';
+
+        if (Object.keys(aggs).length === 0)
+            return div.innerHTML = '<p class="text-muted">No hay agregaciones disponibles</p>';
+
+        if (aggs.cuentos_por_mes?.buckets) {
+            const cont = document.createElement('div');
+            cont.className = 'aggs-item';
+            cont.innerHTML = '<h6>Cuentos por Mes</h6><ul id="listMes"></ul>';
+            div.appendChild(cont);
+
+            const list = cont.querySelector('#listMes');
+            aggs.cuentos_por_mes.buckets.forEach(b => {
+                const fecha = new Date(b.key_as_string).toLocaleDateString('es-ES', { year:"numeric", month:"long" });
+                list.innerHTML += `<li>${fecha} <span class="badge bg-primary">${b.doc_count}</span></li>`;
+            });
+        }
+
+        if (aggs.cuentos_por_autor?.buckets) {
+            const cont = document.createElement('div');
+            cont.className = 'aggs-item';
+            cont.innerHTML = '<h6>Cuentos por Autor</h6><ul id="listAutor"></ul>';
+            div.appendChild(cont);
+
+            const list = cont.querySelector('#listAutor');
+            aggs.cuentos_por_autor.buckets.forEach(b => {
+                list.innerHTML += `<li>${b.key} <span class="badge bg-success">${b.doc_count}</span></li>`;
+            });
+        }
+    }
+
+    let ultimaBusqueda = [];
+
+    function mostrarHits(hits) {
+        ultimaBusqueda = hits;
+        const tabla = document.getElementById('tablaResultados');
+        tabla.innerHTML = '';
+
+        if (!hits.length)
+            return tabla.innerHTML = '<tr><td colspan="5" class="text-center">No se encontraron resultados</td></tr>';
+
+        hits.forEach((hit, i) => {
+            const source = hit._source || {};
+            let contenido = source.contenido || source.texto || JSON.stringify(source);
+            let preview = contenido.substring(0, 200) + (contenido.length > 200 ? "..." : "");
+
+            const row = `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${hit._id}</td>
+                    <td>${hit._score?.toFixed(4)}</td>
+                    <td>${hit._index}</td>
+                    <td>
+                        <div class="json-view">${preview}</div>
+                        <button class="btn btn-sm btn-link mt-1"
+                                onclick="mostrarDetalle(${i})"
+                                data-bs-toggle="modal" data-bs-target="#modalDetalle">
+                            Ver completo
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tabla.innerHTML += row;
+        });
+    }
+
+    function mostrarError(msg) {
+        document.getElementById('mensajeError').textContent = msg;
+        document.getElementById('divError').style.display = 'block';
+    }
+
+    function mostrarDetalle(i) {
+        const modalBody = document.getElementById('modalDetalleBody');
+        modalBody.innerHTML = `<pre class="json-view" style="max-height:500px;">${JSON.stringify(ultimaBusqueda[i]._source, null, 2)}</pre>`;
+    }
+</script>
+
+<!-- Modal detalle -->
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalle del Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalDetalleBody"></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

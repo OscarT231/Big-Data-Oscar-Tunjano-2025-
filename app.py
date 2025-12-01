@@ -41,6 +41,13 @@ def landing():
 def about():
     """Página About"""
     return render_template('about.html', version=VERSION_APP, creador=CREATOR_APP)
+
+#### RUTA DE BUSCADOR####
+@app.route('/buscador')
+def buscador():
+    """Página de búsqueda pública"""
+    return render_template('buscador.html', version=VERSION_APP, creador=CREATOR_APP)
+
 ############### RUTAS DE MONGO INICIO #################
 ####RUTA DE LOGIN CON VALIDACIÓN####
 @app.route('/login', methods=['GET', 'POST'])
