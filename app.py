@@ -20,7 +20,7 @@ MONGO_COLECCION = os.getenv('MONGO_COLECCION', 'usuario_roles')
 ELASTIC_CLOUD_ID       = os.getenv('ELASTIC_CLOUD_ID')
 ELASTIC_API_KEY         = os.getenv('ELASTIC_API_KEY')
 ELASTIC_INDEX_DEFAULT   = os.getenv('ELASTIC_INDEX_DEFAULT', 'index_proyecto')
-
+elastic = ElasticSearch(ELASTIC_CLOUD_ID, ELASTIC_API_KEY)
 # Versión de la aplicación
 VERSION_APP = "1.2.0"
 CREATOR_APP = "OscarDanTR"
@@ -50,65 +50,53 @@ def buscador():
     return render_template('buscador.html', version=VERSION_APP, creador=CREATOR_APP)
 
 ### RUTA DE BUSCARDOR ELASTIC ###
+
 @app.route('/buscar-elastic', methods=['POST'])
 def buscar_elastic():
-    """API para realizar búsquedas en ElasticSearch"""
     try:
         data = request.get_json()
+        texto_buscar = data.get("texto", "").strip()
 
-        # Texto a buscar
-        texto_buscar = data.get('texto', '').strip()
         if not texto_buscar:
-            return jsonify({
-                'success': False,
-                'error': 'Texto de búsqueda es requerido'
-            }), 400
+            return jsonify({"success": False, "error": "No se envió texto a buscar"})
 
-        # Campo a buscar (si no envían, usa _all o texto según tu modelo)
-        campo = data.get('campo', 'texto')
+        cliente = elastic.client  # usar la instancia ya creada
 
-        # Query base
-        query_base = {
+        # Campos a buscar
+        campos_busqueda = ["titulo^2", "texto_completo", "filename"]
+
+        # Query multi_match con analyzer español y fuzziness
+        query = {
             "query": {
-                "match": {
-                    campo: texto_buscar
+                "multi_match": {
+                    "query": texto_buscar,
+                    "fields": campos_busqueda,
+                    "type": "best_fields",
+                    "operator": "or",
+                    "fuzziness": "AUTO",       # permite errores de tipeo
+                    "prefix_length": 2          # no fuzziness para las primeras 2 letras
                 }
             }
         }
 
-        # Aggregations
-        aggs = {
-            "cuentos_por_mes": {
-                "date_histogram": {
-                    "field": "fecha_creacion",
-                    "calendar_interval": "month"
-                }
-            },
-            "cuentos_por_autor": {
-                "terms": {
-                    "field": "autor",
-                    "size": 10
-                }
-            }
-        }
+        respuesta = cliente.search(index="index_proyecto", body=query, size=100)
 
-        # Ejecución
-        resultado = elastic.buscar(
-            index=ELASTIC_INDEX_DEFAULT,
-            query=query_base,
-            aggs=aggs,
-            size=100
-        )
+        hits = respuesta.get("hits", {}).get("hits", [])
+        total = respuesta.get("hits", {}).get("total", {}).get("value", 0)
 
-        return jsonify(resultado)
+        return jsonify({
+            "success": True,
+            "total": total,
+            "hits": hits,
+            "aggs": {}
+        })
 
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)})
 
-############### RUTAS DE BUSCADOR EN ELASTIC FIN #################
+
+
+############## RUTAS DE BUSCADOR EN ELASTIC FIN #################
 
 ############### RUTAS DE MONGO INICIO #################
 ####RUTA DE LOGIN CON VALIDACIÓN####
@@ -430,53 +418,104 @@ def procesar_webscraping_elastic():
 ### RUTA DE CARGAR ZIP A ELASTIC ###
 @app.route('/procesar-zip-elastic', methods=['POST'])
 def procesar_zip_elastic():
-    """API para procesar archivo ZIP con archivos JSON"""
     try:
+        print("\n--- INICIO /procesar-zip-elastic ---")
+
+        # DEBUG: Ver qué llega realmente
+        print("request.files:", request.files)
+        print("request.form:", request.form)
+
         if not session.get('logged_in'):
             return jsonify({'success': False, 'error': 'No autorizado'}), 401
         
         permisos = session.get('permisos', {})
         if not permisos.get('admin_data_elastic'):
-            return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
+            return jsonify({'success': False, 'error': 'No tiene permisos'}), 403
         
         if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
+            return jsonify({'success': False, 'error': 'No se envió archivo'}), 400
         
         file = request.files['file']
         index = request.form.get('index')
-        
+
+        print("Filename recibido:", file.filename)
+        print("Index recibido:", index)
+
         if not file.filename:
             return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
-        
+
         if not index:
             return jsonify({'success': False, 'error': 'Índice no especificado'}), 400
-        
-        # Guardar archivo ZIP temporalmente
-        filename = secure_filename(file.filename)
-        carpeta_upload = 'static/uploads'
-        Funciones.crear_carpeta(carpeta_upload)
+
+        # RUTA REAL
+        carpeta_upload = os.path.join(app.root_path, "static", "uploads")
+        print("Ruta uploads:", carpeta_upload)
+
+        os.makedirs(carpeta_upload, exist_ok=True)
+
+        # Limpiar
         Funciones.borrar_contenido_carpeta(carpeta_upload)
-        
+
+        filename = secure_filename(file.filename)
         zip_path = os.path.join(carpeta_upload, filename)
         file.save(zip_path)
-        print(f"Archivo ZIP guardado en: {zip_path}")
-        
-        # Descomprimir ZIP
+
+        print("ZIP guardado en:", zip_path)
+
+        # Descomprimir
         archivos = Funciones.descomprimir_zip_local(zip_path, carpeta_upload)
-        
-        # Eliminar archivo ZIP
+        print("Archivos extraídos:", archivos)
+
+        if archivos is None:
+            raise Exception("descomprimir_zip_local devolvió None")
+
         os.remove(zip_path)
-        
-        # Listar archivos JSON
+        print("ZIP eliminado.")
+
         archivos_json = Funciones.listar_archivos_json(carpeta_upload)
-        
+        print("JSON encontrados:", archivos_json)
+
         return jsonify({
             'success': True,
             'archivos': archivos_json,
-            'mensaje': f'Se encontraron {len(archivos_json)} archivos JSON'
+            'mensaje': f"Se encontraron {len(archivos_json)} archivos JSON"
         })
-        
+
     except Exception as e:
+        print("\n--- ERROR /procesar-zip-elastic ---")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+### RUTA DE SUBIR PDFS A ELASTIC ###
+@app.route('/subir-pdfs-elastic', methods=['POST'])
+def subir_pdfs_elastic():
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_data_elastic'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
+
+        data = request.get_json() or {}
+        index = data.get("index")
+        # usa la misma carpeta donde descomprimiste el ZIP
+        carpeta_upload = os.path.join(app.root_path, "static", "uploads")
+
+        if not index:
+            return jsonify({'success': False, 'error': 'Debe enviar el índice'}), 400
+
+        # ---------- USAR LA INSTANCIA EXISTENTE ----------
+        # Aquí 'elastic' es la instancia que ya definiste arriba en app.py:
+        # elastic = ElasticSearch(ELASTIC_CLOUD_ID, ELASTIC_API_KEY)
+        resultado = elastic.cargar_pdfs_desde_carpeta(carpeta_upload, index)
+
+        return jsonify(resultado)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 ### RUTA CARGAR DOCUMENTOS A ELASTIC ###    

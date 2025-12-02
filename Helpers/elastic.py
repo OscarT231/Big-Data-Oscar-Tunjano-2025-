@@ -390,3 +390,54 @@ class ElasticSearch:
     def close(self):
         """Cierra la conexión"""
         self.client.close()
+
+    def cargar_pdfs_desde_carpeta(self, carpeta_upload, index):
+        """
+        Lee todos los PDFs en la carpeta, extrae el texto y los sube a ElasticSearch.
+        """
+        try:
+            import pdfplumber
+            import os
+            from datetime import datetime
+
+            documentos = []
+            pdf_files = [f for f in os.listdir(carpeta_upload) if f.lower().endswith('.pdf')]
+
+            for pdf_file in pdf_files:
+                pdf_path = os.path.join(carpeta_upload, pdf_file)
+
+                # Extraer texto del PDF
+                texto = ""
+                with pdfplumber.open(pdf_path) as pdf:
+                    for page in pdf.pages:
+                        contenido = page.extract_text()
+                        if contenido:
+                            texto += contenido + "\n"
+
+                # Documento a enviar a Elasticsearch
+                doc = {
+                    "nombre_archivo": pdf_file,
+                    "ruta": pdf_path,
+                    "contenido": texto,
+                    "fecha_carga": datetime.now().isoformat()
+                }
+
+                documentos.append(doc)
+
+            # Subir documentos a Elastic
+            resultados = []
+            for doc in documentos:
+                res = self.client.index(index=index, document=doc)
+                resultados.append(res)
+
+            return {
+                "success": True,
+                "total_documentos": len(resultados),
+                "detalles": resultados
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }

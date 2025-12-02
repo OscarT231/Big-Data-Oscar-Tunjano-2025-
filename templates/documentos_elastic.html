@@ -36,12 +36,14 @@
             <h5 class="card-title">1. Seleccionar Índice de Destino</h5>
             <div class="mb-3">
                 <label for="select_index" class="form-label">Índice de ElasticSearch</label>
-                <select class="form-select" id="select_index">
+                <select class="form-select" id="select_index" name="select_index">
                     <option value="">Cargando índices...</option>
                 </select>
             </div>
         </div>
-    </div>
+    </div>    
+
+    
 
     <!-- Selección de método -->
     <div class="card mb-4">
@@ -106,6 +108,23 @@
             </button>
         </div>
     </div>
+    <!--  Subir archivos desde uploas  -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Subir PDFs desde /uploads</h5>
+
+            <div class="mb-3">
+                <label for="select_index" class="form-label">Índice de ElasticSearch</label>
+                <select class="form-select" id="select_index" name="select_index">
+                    <option value="">Cargando índices...</option>
+                </select>
+            </div>
+
+            <button class="btn btn-success" onclick="subirPDFsElastic()">
+                Subir PDFs a Elastic
+            </button>
+        </div>
+    </div>
 
     <!-- Resultados -->
     <div id="seccion_resultados" style="display:none;">
@@ -158,7 +177,6 @@
     <p class="mb-0" id="current-year"></p>
     <p class="mb-0">{{ version }}</p>
 </footer>
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -383,6 +401,39 @@ function ocultarCargando() {
     document.getElementById("div_cargando").style.display = "none";
 }
 </script>
+<script>
+async function subirPDFsElastic() {
+    const index = document.getElementById("index-input").value.trim();
+
+    if (!index) {
+        alert("Debe ingresar el nombre del índice");
+        return;
+    }
+
+    try {
+        const response = await fetch("/subir-pdfs-elastic", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ index })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert("PDFs subidos correctamente: " + data.total_documentos);
+        } else {
+            alert("Error: " + data.error);
+        }
+
+    } catch (error) {
+        alert("Error llamando al servidor: " + error);
+    }
+}
+</script>
 
 </body>
 </html>
+
+
