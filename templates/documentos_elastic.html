@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargar Documentos a Elastic - BigData</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="{{ url_for('static', filename='css/gestor.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<header class="header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h3 mb-0">BigData-MiProyecto <b>[{{ usuario }}]</b></h2>
+            <nav>
+                <ul class="nav">
+                    <li class="nav-item"><a class="nav-link" href="/admin">Volver al Admin</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/">Salir</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</header>
+
+<hr>
+
+<div class="container mt-4">
+    <h1 class="h3 mb-4">Cargar Documentos a ElasticSearch</h1>
+
+    <!-- Selección de índice -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">1. Seleccionar Índice de Destino</h5>
+            <div class="mb-3">
+                <label for="select_index" class="form-label">Índice de ElasticSearch</label>
+                <select class="form-select" id="select_index">
+                    <option value="">Cargando índices...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selección de método -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">2. Seleccionar Método de Carga</h5>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" id="radio_zip" name="metodo_carga" value="zip" checked>
+                <label class="form-check-label" for="radio_zip">
+                    <strong>ZIP con JSON</strong> – Cargar archivos JSON comprimidos
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" id="radio_webscraping" name="metodo_carga" value="webscraping">
+                <label class="form-check-label" for="radio_webscraping">
+                    <strong>Web Scraping</strong> – Extraer y procesar documentos desde web
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Opciones ZIP -->
+    <div class="card mb-4" id="opciones_zip">
+        <div class="card-body">
+            <h5 class="card-title">3. Cargar Archivo ZIP</h5>
+
+            <div class="mb-3">
+                <label for="file_zip" class="form-label">Seleccionar archivo ZIP con archivos JSON</label>
+                <input type="file" class="form-control" id="file_zip" accept=".zip">
+                <div class="form-text">El archivo ZIP debe contener archivos .json</div>
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="procesarZip()">
+                <i class="bi bi-upload"></i> Procesar ZIP
+            </button>
+        </div>
+    </div>
+
+    <!-- Opciones WebScraping -->
+    <div class="card mb-4" id="opciones_webscraping" style="display: none;">
+        <div class="card-body">
+            <h5 class="card-title">3. Configurar Web Scraping</h5>
+
+            <div class="mb-3">
+                <label for="url_webscraping" class="form-label">URL para Web Scraping</label>
+                <input type="url" class="form-control" id="url_webscraping" placeholder="https://ejemplo.com/pagina">
+            </div>
+
+            <div class="mb-3">
+                <label for="extensiones_navegar" class="form-label">Extensiones a Navegar</label>
+                <input type="text" class="form-control" id="extensiones_navegar" value="aspx">
+            </div>
+
+            <div class="mb-3">
+                <label for="tipos_archivos" class="form-label">Tipos de Archivos a Descargar</label>
+                <input type="text" class="form-control" id="tipos_archivos" value="pdf">
+            </div>
+
+            <button type="button" class="btn btn-primary" onclick="procesarWebScraping()">
+                <i class="bi bi-download"></i> Iniciar Web Scraping
+            </button>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div id="seccion_resultados" style="display:none;">
+        <div class="card mb-4">
+            <div class="card-body">
+
+                <h5 class="card-title">4. Archivos Procesados</h5>
+                <div id="info_resultados" class="alert alert-info mb-3"></div>
+
+                <!-- Seleccionar todos -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="seleccionar_todos" onchange="toggleSeleccionarTodos()">
+                        <label class="form-check-label" for="seleccionar_todos">Seleccionar Todos</label>
+                    </div>
+
+                    <button type="button" class="btn btn-success" onclick="cargarSeleccionados()">
+                        <i class="bi bi-cloud-upload"></i> <span id="texto_boton_cargar">Cargar Seleccionados</span>
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:50px"></th>
+                                <th>Archivo</th>
+                                <th>Tipo</th>
+                                <th>Tamaño</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla_archivos"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spinner -->
+    <div id="div_cargando" class="text-center mt-4" style="display:none;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2" id="mensaje_cargando">Procesando…</p>
+    </div>
+
+</div>
+
+<footer class="text-center mt-5">
+    <p class="mb-0">Creado por {{ creador }}</p>
+    <p class="mb-0" id="current-year"></p>
+    <p class="mb-0">{{ version }}</p>
+</footer>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+/* ================================
+   VARIABLES
+================================ */
+let archivosActuales = [];
+let metodoActual = "zip";
+
+document.getElementById("current-year").textContent = new Date().getFullYear();
+
+/* ================================
+   INICIO
+================================ */
+document.addEventListener("DOMContentLoaded", () => {
+    cargarIndices();
+    configurarRadioButtons();
+});
+
+/* ================================
+   RADIO BUTTONS
+================================ */
+function configurarRadioButtons() {
+    document.querySelectorAll('input[name="metodo_carga"]').forEach(radio => {
+        radio.addEventListener("change", function () {
+            metodoActual = this.value;
+
+            document.getElementById("opciones_zip").style.display = metodoActual === "zip" ? "block" : "none";
+            document.getElementById("opciones_webscraping").style.display = metodoActual === "webscraping" ? "block" : "none";
+
+            document.getElementById("seccion_resultados").style.display = "none";
+        });
+    });
+}
+
+/* ================================
+   CARGAR ÍNDICES
+================================ */
+function cargarIndices() {
+    fetch("/listar-indices-elastic")
+        .then(r => r.json())
+        .then(indices => {
+            const select = document.getElementById("select_index");
+            select.innerHTML = '<option value="">Seleccione un índice</option>';
+
+            indices.forEach(ind => {
+                const opt = document.createElement("option");
+                opt.value = ind.nombre;
+                opt.textContent = `${ind.nombre} (${ind.total_documentos} docs)`;
+                select.appendChild(opt);
+            });
+        })
+        .catch(() => {
+            document.getElementById("select_index").innerHTML =
+                '<option value="">Error al cargar índices</option>';
+        });
+}
+
+/* ================================
+   PROCESAR ZIP
+================================ */
+function procesarZip() {
+    const file = document.getElementById("file_zip").files[0];
+    const index = document.getElementById("select_index").value;
+
+    if (!file) return alert("Seleccione un archivo ZIP");
+    if (!index) return alert("Seleccione un índice de destino");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("index", index);
+
+    mostrarCargando("Procesando archivo ZIP...");
+
+    fetch("/procesar-zip-elastic", { method: "POST", body: formData })
+        .then(r => r.json())
+        .then(data => manejarRespuestaProcesamiento(data))
+        .catch(() => alert("Error al procesar ZIP"))
+        .finally(ocultarCargando);
+}
+
+/* ================================
+   PROCESAR SCRAPING
+================================ */
+function procesarWebScraping() {
+    const index = document.getElementById("select_index").value;
+    const url = document.getElementById("url_webscraping").value.trim();
+
+    if (!url) return alert("Ingrese una URL válida");
+    if (!index) return alert("Seleccione un índice de destino");
+
+    mostrarCargando("Realizando Web Scraping…");
+
+    fetch("/procesar-webscraping-elastic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            url,
+            index,
+            extensiones_navegar: document.getElementById("extensiones_navegar").value.trim(),
+            tipos_archivos: document.getElementById("tipos_archivos").value.trim()
+        })
+    })
+        .then(r => r.json())
+        .then(data => manejarRespuestaProcesamiento(data))
+        .catch(() => alert("Error al procesar web scraping"))
+        .finally(ocultarCargando);
+}
+
+/* ================================
+   MANEJO DE RESPUESTAS
+================================ */
+function manejarRespuestaProcesamiento(data) {
+    if (!data.success) {
+        alert("Error: " + (data.error || "Error desconocido"));
+        return;
+    }
+
+    archivosActuales = data.archivos;
+    mostrarResultados(data);
+}
+
+/* ================================
+   MOSTRAR RESULTADOS
+================================ */
+function mostrarResultados(data) {
+    document.getElementById("seccion_resultados").style.display = "block";
+
+    document.getElementById("info_resultados").innerHTML =
+        `<strong>Total de archivos:</strong> ${data.archivos.length}<br>` +
+        (data.mensaje || "");
+
+    document.getElementById("texto_boton_cargar").textContent =
+        metodoActual === "webscraping" ? "PLN/Cargar Seleccionados" : "Cargar Seleccionados";
+
+    const tbody = document.getElementById("tabla_archivos");
+    tbody.innerHTML = "";
+
+    data.archivos.forEach((a, i) => {
+        tbody.innerHTML += `
+        <tr>
+            <td><input type="checkbox" class="archivo-checkbox" data-index="${i}" checked></td>
+            <td>${a.nombre}</td>
+            <td><span class="badge bg-secondary">${a.extension || "json"}</span></td>
+            <td>${formatearTamaño(a.tamaño || 0)}</td>
+            <td><span class="badge bg-warning">Pendiente</span></td>
+        </tr>`;
+    });
+
+    document.getElementById("seccion_resultados").scrollIntoView({ behavior: "smooth" });
+}
+
+/* ================================
+   CARGAR SELECCIONADOS
+================================ */
+function cargarSeleccionados() {
+    const index = document.getElementById("select_index").value;
+    if (!index) return alert("Seleccione un índice de destino");
+
+    const seleccion = [...document.querySelectorAll(".archivo-checkbox:checked")]
+        .map(cb => archivosActuales[parseInt(cb.dataset.index)]);
+
+    if (seleccion.length === 0) return alert("Seleccione al menos un archivo");
+
+    mostrarCargando("Cargando documentos a ElasticSearch…");
+
+    fetch("/cargar-documentos-elastic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archivos: seleccion, index, metodo: metodoActual })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                alert("Error: " + data.error);
+                return;
+            }
+
+            alert(`Carga completada:\n- Documentos indexados: ${data.indexados}\n- Errores: ${data.errores}`);
+
+            // Cambiar estado a "cargado"
+            document.querySelectorAll(".archivo-checkbox:checked").forEach(cb => {
+                const row = cb.closest("tr");
+                row.querySelector("td:last-child span").className = "badge bg-success";
+                row.querySelector("td:last-child span").textContent = "Cargado";
+                cb.disabled = true;
+            });
+
+            cargarIndices();
+        })
+        .catch(() => alert("Error al cargar documentos"))
+        .finally(ocultarCargando);
+}
+
+/* ================================
+   CHECKBOX: SELECCIONAR TODOS
+================================ */
+function toggleSeleccionarTodos() {
+    const estado = document.getElementById("seleccionar_todos").checked;
+    document.querySelectorAll(".archivo-checkbox:not(:disabled)")
+        .forEach(cb => cb.checked = estado);
+}
+
+/* ================================
+   UTILS
+================================ */
+function formatearTamaño(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
+}
+
+function mostrarCargando(msg) {
+    document.getElementById("mensaje_cargando").textContent = msg;
+    document.getElementById("div_cargando").style.display = "block";
+}
+
+function ocultarCargando() {
+    document.getElementById("div_cargando").style.display = "none";
+}
+</script>
+
+</body>
+</html>
