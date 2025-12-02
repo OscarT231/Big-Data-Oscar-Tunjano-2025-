@@ -274,3 +274,5 @@ class Funciones:
         except Exception as e:
             print(f"Error al guardar JSON: {e}")
             return False
+        
+    
