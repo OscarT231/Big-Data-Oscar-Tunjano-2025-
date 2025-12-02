@@ -19,7 +19,7 @@ MONGO_COLECCION = os.getenv('MONGO_COLECCION', 'usuario_roles')
 # Configuración ElasticSearch Cloud
 ELASTIC_CLOUD_ID       = os.getenv('ELASTIC_CLOUD_ID')
 ELASTIC_API_KEY         = os.getenv('ELASTIC_API_KEY')
-ELASTIC_INDEX_DEFAULT   = os.getenv('ELASTIC_INDEX_DEFAULT', 'index_cuentos')
+ELASTIC_INDEX_DEFAULT   = os.getenv('ELASTIC_INDEX_DEFAULT', 'index_proyecto')
 
 # Versión de la aplicación
 VERSION_APP = "1.2.0"
@@ -42,11 +42,73 @@ def about():
     """Página About"""
     return render_template('about.html', version=VERSION_APP, creador=CREATOR_APP)
 
+############### RUTAS DE BUSCADOR EN ELASTIC INICIO #################
 #### RUTA DE BUSCADOR####
 @app.route('/buscador')
 def buscador():
     """Página de búsqueda pública"""
     return render_template('buscador.html', version=VERSION_APP, creador=CREATOR_APP)
+
+### RUTA DE BUSCARDOR ELASTIC ###
+@app.route('/buscar-elastic', methods=['POST'])
+def buscar_elastic():
+    """API para realizar búsquedas en ElasticSearch"""
+    try:
+        data = request.get_json()
+
+        # Texto a buscar
+        texto_buscar = data.get('texto', '').strip()
+        if not texto_buscar:
+            return jsonify({
+                'success': False,
+                'error': 'Texto de búsqueda es requerido'
+            }), 400
+
+        # Campo a buscar (si no envían, usa _all o texto según tu modelo)
+        campo = data.get('campo', 'texto')
+
+        # Query base
+        query_base = {
+            "query": {
+                "match": {
+                    campo: texto_buscar
+                }
+            }
+        }
+
+        # Aggregations
+        aggs = {
+            "cuentos_por_mes": {
+                "date_histogram": {
+                    "field": "fecha_creacion",
+                    "calendar_interval": "month"
+                }
+            },
+            "cuentos_por_autor": {
+                "terms": {
+                    "field": "autor",
+                    "size": 10
+                }
+            }
+        }
+
+        # Ejecución
+        resultado = elastic.buscar(
+            index=ELASTIC_INDEX_DEFAULT,
+            query=query_base,
+            aggs=aggs,
+            size=100
+        )
+
+        return jsonify(resultado)
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+############### RUTAS DE BUSCADOR EN ELASTIC FIN #################
 
 ############### RUTAS DE MONGO INICIO #################
 ####RUTA DE LOGIN CON VALIDACIÓN####
