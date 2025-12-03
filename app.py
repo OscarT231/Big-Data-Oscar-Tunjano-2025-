@@ -94,8 +94,6 @@ def buscar_elastic():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
-
 ############## RUTAS DE BUSCADOR EN ELASTIC FIN #################
 
 ############### RUTAS DE MONGO INICIO #################
@@ -343,11 +341,6 @@ def cargar_doc_elastic():
     return render_template('documentos_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
 
 
-############### RUTAS DE ELASTIC FIN #################
-
-#### RUTA DE PROCESAR WEBSCRAPING ####
-@app.route('/procesar-webscraping-elastic', methods=['POST'])
-def procesar_webscraping_elastic():
     """API para procesar Web Scraping"""
     try:
         if not session.get('logged_in'):
@@ -414,17 +407,67 @@ def procesar_webscraping_elastic():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-
-### RUTA DE CARGAR ZIP A ELASTIC ###
+### RUTA DE CARGAR ZIP JSON A ELASTIC ###
 @app.route('/procesar-zip-elastic', methods=['POST'])
 def procesar_zip_elastic():
+    """API para procesar archivo ZIP con archivos JSON"""
     try:
-        print("\n--- INICIO /procesar-zip-elastic ---")
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_data_elastic'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
+        
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No se envió ningún archivo'}), 400
+        
+        file = request.files['file']
+        index = request.form.get('index')
+        
+        if not file.filename:
+            return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
+        
+        if not index:
+            return jsonify({'success': False, 'error': 'Índice no especificado'}), 400
+        
+        # Guardar archivo ZIP temporalmente
+        filename = secure_filename(file.filename)
+        carpeta_upload = 'static/uploads'
+        Funciones.crear_carpeta(carpeta_upload)
+        Funciones.borrar_contenido_carpeta(carpeta_upload)
+        
+        zip_path = os.path.join(carpeta_upload, filename)
+        file.save(zip_path)
+        print(f"Archivo ZIP guardado en: {zip_path}")
+        
+        # Descomprimir ZIP
+        archivos = Funciones.descomprimir_zip_local(zip_path, carpeta_upload)
+        
+        # Eliminar archivo ZIP
+        os.remove(zip_path)
+        
+        # Listar archivos JSON
+        archivos_json = Funciones.listar_archivos_json(carpeta_upload)
+        
+        return jsonify({
+            'success': True,
+            'archivos': archivos_json,
+            'mensaje': f'Se encontraron {len(archivos_json)} archivos JSON'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-        # DEBUG: Ver qué llega realmente
+### RUTA DE CARGAR ZIP PDFS A ELASTIC ###
+@app.route('/procesar-zip-pdfs', methods=['POST'])
+def procesar_zip_pdfs():
+    try:
+        print("\n--- INICIO /procesar-zip-pdfs ---")
         print("request.files:", request.files)
         print("request.form:", request.form)
 
+        # Verificar sesión y permisos
         if not session.get('logged_in'):
             return jsonify({'success': False, 'error': 'No autorizado'}), 401
         
@@ -432,91 +475,64 @@ def procesar_zip_elastic():
         if not permisos.get('admin_data_elastic'):
             return jsonify({'success': False, 'error': 'No tiene permisos'}), 403
         
+        # Verificar archivo y índice
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No se envió archivo'}), 400
         
         file = request.files['file']
         index = request.form.get('index')
 
-        print("Filename recibido:", file.filename)
-        print("Index recibido:", index)
-
         if not file.filename:
             return jsonify({'success': False, 'error': 'Archivo no válido'}), 400
-
         if not index:
             return jsonify({'success': False, 'error': 'Índice no especificado'}), 400
 
-        # RUTA REAL
+        # Preparar carpeta uploads
         carpeta_upload = os.path.join(app.root_path, "static", "uploads")
-        print("Ruta uploads:", carpeta_upload)
-
         os.makedirs(carpeta_upload, exist_ok=True)
-
-        # Limpiar
         Funciones.borrar_contenido_carpeta(carpeta_upload)
 
+        # Guardar ZIP
         filename = secure_filename(file.filename)
         zip_path = os.path.join(carpeta_upload, filename)
         file.save(zip_path)
-
         print("ZIP guardado en:", zip_path)
 
         # Descomprimir
         archivos = Funciones.descomprimir_zip_local(zip_path, carpeta_upload)
         print("Archivos extraídos:", archivos)
-
         if archivos is None:
             raise Exception("descomprimir_zip_local devolvió None")
 
         os.remove(zip_path)
         print("ZIP eliminado.")
 
-        archivos_json = Funciones.listar_archivos_json(carpeta_upload)
-        print("JSON encontrados:", archivos_json)
+        # Filtrar PDFs
+        archivos_pdf = [a for a in archivos if a.lower().endswith('.pdf')]
+        print("PDF encontrados:", archivos_pdf)
+
+        # Subir a Elastic usando la función mejorada
+        resultado = elastic.cargar_pdfs_desde_carpeta(carpeta_upload, index)
+        print("Resultado carga Elastic:", resultado)
+
+        if not resultado.get('success', False):
+            return jsonify({'success': False, 'error': resultado.get('error', 'Error desconocido')}), 500
 
         return jsonify({
             'success': True,
-            'archivos': archivos_json,
-            'mensaje': f"Se encontraron {len(archivos_json)} archivos JSON"
+            'archivos': archivos_pdf,
+            'mensaje': f"Se encontraron {len(archivos_pdf)} archivos PDF",
+            'indexados': resultado.get('indexados', 0),
+            'errores': resultado.get('errores', 0),
+            'detalles': resultado.get('detalles', [])
         })
 
     except Exception as e:
-        print("\n--- ERROR /procesar-zip-elastic ---")
+        print("\n--- ERROR /procesar-zip-pdfs ---")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-### RUTA DE SUBIR PDFS A ELASTIC ###
-@app.route('/subir-pdfs-elastic', methods=['POST'])
-def subir_pdfs_elastic():
-    try:
-        if not session.get('logged_in'):
-            return jsonify({'success': False, 'error': 'No autorizado'}), 401
-
-        permisos = session.get('permisos', {})
-        if not permisos.get('admin_data_elastic'):
-            return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
-
-        data = request.get_json() or {}
-        index = data.get("index")
-        # usa la misma carpeta donde descomprimiste el ZIP
-        carpeta_upload = os.path.join(app.root_path, "static", "uploads")
-
-        if not index:
-            return jsonify({'success': False, 'error': 'Debe enviar el índice'}), 400
-
-        # ---------- USAR LA INSTANCIA EXISTENTE ----------
-        # Aquí 'elastic' es la instancia que ya definiste arriba en app.py:
-        # elastic = ElasticSearch(ELASTIC_CLOUD_ID, ELASTIC_API_KEY)
-        resultado = elastic.cargar_pdfs_desde_carpeta(carpeta_upload, index)
-
-        return jsonify(resultado)
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 ### RUTA CARGAR DOCUMENTOS A ELASTIC ###    
 @app.route('/cargar-documentos-elastic', methods=['POST'])
@@ -633,6 +649,78 @@ def cargar_documentos_elastic():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+### RUTA PROCESAR WEBSCRAPING A ELASTIC ###
+@app.route('/procesar-webscraping-elastic', methods=['POST'])
+def procesar_webscraping_elastic():
+    """API para procesar Web Scraping"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_data_elastic'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
+        
+        data = request.get_json()
+        url = data.get('url')
+        extensiones_navegar = data.get('extensiones_navegar', 'aspx')
+        tipos_archivos = data.get('tipos_archivos', 'pdf')
+        index = data.get('index')
+        
+        if not url or not index:
+            return jsonify({'success': False, 'error': 'URL e índice son requeridos'}), 400
+        
+        # Procesar listas de extensiones
+        lista_ext_navegar = [ext.strip() for ext in extensiones_navegar.split(',')]
+        lista_tipos_archivos = [ext.strip() for ext in tipos_archivos.split(',')]
+        
+        # Combinar ambas listas para extraer todos los enlaces
+        todas_extensiones = lista_ext_navegar + lista_tipos_archivos
+        
+        # Inicializar WebScraping
+        scraper = WebScraping(dominio_base=url.rsplit('/', 1)[0] + '/')
+        
+        # Limpiar carpeta de uploads
+        carpeta_upload = 'static/uploads'
+        Funciones.crear_carpeta(carpeta_upload)
+        Funciones.borrar_contenido_carpeta(carpeta_upload)
+        
+        # Extraer todos los enlaces
+        json_path = os.path.join(carpeta_upload, 'links.json')
+        resultado = scraper.extraer_todos_los_links(
+            url_inicial=url,
+            json_file_path=json_path,
+            listado_extensiones=todas_extensiones,
+            max_iteraciones=50
+        )
+        
+        if not resultado['success']:
+            return jsonify({'success': False, 'error': 'Error al extraer enlaces'}), 500
+        
+        # Descargar archivos PDF (o los tipos especificados)
+        resultado_descarga = scraper.descargar_pdfs(json_path, carpeta_upload)
+        
+        scraper.close()
+        
+        # Listar archivos descargados
+        archivos = Funciones.listar_archivos_carpeta(carpeta_upload, lista_tipos_archivos)
+        
+        return jsonify({
+            'success': True,
+            'archivos': archivos,
+            'mensaje': f'Se descargaron {len(archivos)} archivos',
+            'stats': {
+                'total_enlaces': resultado['total_links'],
+                'descargados': resultado_descarga.get('descargados', 0),
+                'errores': resultado_descarga.get('errores', 0)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+########################## RUTAS DE ELASTIC FIN ##########################
 
 #### RUTA DE ADMIN ####
 @app.route('/admin')

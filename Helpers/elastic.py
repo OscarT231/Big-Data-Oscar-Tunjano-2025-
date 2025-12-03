@@ -395,49 +395,48 @@ class ElasticSearch:
         """
         Lee todos los PDFs en la carpeta, extrae el texto y los sube a ElasticSearch.
         """
-        try:
-            import pdfplumber
-            import os
-            from datetime import datetime
+        import pdfplumber
+        import os
+        from datetime import datetime
 
-            documentos = []
+        resultados = []
+        indexados = 0
+        errores = 0
+
+        try:
             pdf_files = [f for f in os.listdir(carpeta_upload) if f.lower().endswith('.pdf')]
 
             for pdf_file in pdf_files:
                 pdf_path = os.path.join(carpeta_upload, pdf_file)
+                try:
+                    texto = ""
+                    with pdfplumber.open(pdf_path) as pdf:
+                        for page in pdf.pages:
+                            contenido = page.extract_text()
+                            if contenido:
+                                texto += contenido + "\n"
 
-                # Extraer texto del PDF
-                texto = ""
-                with pdfplumber.open(pdf_path) as pdf:
-                    for page in pdf.pages:
-                        contenido = page.extract_text()
-                        if contenido:
-                            texto += contenido + "\n"
+                    doc = {
+                        "nombre_archivo": pdf_file,
+                        "ruta": pdf_path,
+                        "contenido": texto,
+                        "fecha_carga": datetime.now().isoformat()
+                    }
 
-                # Documento a enviar a Elasticsearch
-                doc = {
-                    "nombre_archivo": pdf_file,
-                    "ruta": pdf_path,
-                    "contenido": texto,
-                    "fecha_carga": datetime.now().isoformat()
-                }
+                    res = self.client.index(index=index, document=doc)
+                    resultados.append(res)
+                    indexados += 1
 
-                documentos.append(doc)
-
-            # Subir documentos a Elastic
-            resultados = []
-            for doc in documentos:
-                res = self.client.index(index=index, document=doc)
-                resultados.append(res)
+                except Exception as e_pdf:
+                    errores += 1
+                    resultados.append({"archivo": pdf_file, "error": str(e_pdf)})
 
             return {
                 "success": True,
-                "total_documentos": len(resultados),
+                "indexados": indexados,
+                "errores": errores,
                 "detalles": resultados
             }
 
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
