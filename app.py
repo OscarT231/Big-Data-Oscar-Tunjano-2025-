@@ -42,6 +42,7 @@ def about():
     """Página About"""
     return render_template('about.html', version=VERSION_APP, creador=CREATOR_APP)
 
+
 ############### RUTAS DE BUSCADOR EN ELASTIC INICIO #################
 #### RUTA DE BUSCADOR####
 @app.route('/buscador')
@@ -52,65 +53,68 @@ def buscador():
 ### RUTA DE BUSCARDOR ELASTIC ###
 @app.route('/buscar-elastic', methods=['POST'])
 def buscar_elastic():
-    """API para realizar búsquedas en ElasticSearch"""
     try:
         data = request.get_json()
+        texto_buscar = data.get("texto", "").strip()
 
-        # Texto a buscar
-        texto_buscar = data.get('texto', '').strip()
         if not texto_buscar:
-            return jsonify({
-                'success': False,
-                'error': 'Texto de búsqueda es requerido'
-            }), 400
+            return jsonify({"success": False, "error": "No se envió texto a buscar"})
 
-        # Campo a buscar (si no envían, usa _all o texto según tu modelo)
-        campo = data.get('campo', 'texto')
+        cliente = elastic.client
 
-        # Query base
-        query_base = {
+        query = {
             "query": {
-                "match": {
-                    campo: texto_buscar
-                }
-            }
-        }
-
-        # Aggregations
-        aggs = {
-            "cuentos_por_mes": {
-                "date_histogram": {
-                    "field": "fecha_creacion",
-                    "calendar_interval": "month"
+                "bool": {
+                    "must": [
+                        {
+                            "match_phrase": {        # ***COINCIDENCIA EXACTA POR FRASE***
+                                "texto_completo": {
+                                    "query": texto_buscar,
+                                    "slop": 1              # tolerancia mínima
+                                }
+                            }
+                        }
+                    ],
+                    "should": [
+                        {
+                            "match_phrase": {
+                                "titulo": {
+                                    "query": texto_buscar,
+                                    "slop": 1
+                                }
+                            }
+                        }
+                    ],
+                    "minimum_should_match": 0
                 }
             },
-            "cuentos_por_autor": {
-                "terms": {
-                    "field": "autor",
-                    "size": 10
+            "highlight": {
+                "fields": {
+                    "texto_completo": {},
+                    "titulo": {}
                 }
             }
         }
 
-        # Ejecución
-        resultado = elastic.buscar(
-            index=ELASTIC_INDEX_DEFAULT,
-            query=query_base,
-            aggs=aggs,
-            size=100
-        )
+        respuesta = cliente.search(index="index_proyecto", body=query, size=50)
 
-        return jsonify(resultado)
+        hits = respuesta.get("hits", {}).get("hits", [])
+        total = respuesta.get("hits", {}).get("total", {}).get("value", 0)
+
+        return jsonify({
+            "success": True,
+            "total": total,
+            "hits": hits
+        })
 
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-############### RUTAS DE BUSCADOR EN ELASTIC FIN #################
 
-############### RUTAS DE MONGO INICIO #################
+############## RUTAS DE BUSCADOR EN ELASTIC FIN #################
+
+
+# MONGO ############## RUTAS DE MONGO INICIO #################
 ####RUTA DE LOGIN CON VALIDACIÓN####
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -281,7 +285,7 @@ def eliminar_usuario():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-############### RUTAS DE MONGO FIN #################
+# MONGO ############## RUTAS DE MONGO FIN #################
 
 ############### RUTAS DE ELASTIC INICIO #################
 #### RUTA GESTOR ELASTIC ###
@@ -339,6 +343,7 @@ def ejecutar_query_elastic():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 #### RUTA CARGAR DOCUMENTOS A ELASTIC ###
 @app.route('/cargar_doc_elastic')
 def cargar_doc_elastic():
@@ -354,10 +359,7 @@ def cargar_doc_elastic():
     
     return render_template('documentos_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
 
-
-############### RUTAS DE ELASTIC FIN #################
-
-#### RUTA DE PROCESAR WEBSCRAPING ####
+### RUTA PROCESAR WEBSCRAPING A ELASTIC ###
 @app.route('/procesar-webscraping-elastic', methods=['POST'])
 def procesar_webscraping_elastic():
     """API para procesar Web Scraping"""
@@ -375,8 +377,8 @@ def procesar_webscraping_elastic():
         tipos_archivos = data.get('tipos_archivos', 'pdf')
         index = data.get('index')
         
-        if not url:
-            return jsonify({'success': False, 'error': 'La URL es requerida'}), 400
+        if not url or not index:
+            return jsonify({'success': False, 'error': 'URL e índice son requeridos'}), 400
         
         # Procesar listas de extensiones
         lista_ext_navegar = [ext.strip() for ext in extensiones_navegar.split(',')]
@@ -427,7 +429,8 @@ def procesar_webscraping_elastic():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-### RUTA DE CARGAR ZIP A ELASTIC ###
+
+### RUTA DE CARGAR ZIP JSON A ELASTIC ###
 @app.route('/procesar-zip-elastic', methods=['POST'])
 def procesar_zip_elastic():
     """API para procesar archivo ZIP con archivos JSON"""
@@ -479,7 +482,8 @@ def procesar_zip_elastic():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-### RUTA CARGAR DOCUMENTOS A ELASTIC ###    
+
+#### RUTA CARGAR DOCUMENTOS A ELASTIC ###
 @app.route('/cargar-documentos-elastic', methods=['POST'])
 def cargar_documentos_elastic():
     """API para cargar documentos a ElasticSearch"""
@@ -594,6 +598,8 @@ def cargar_documentos_elastic():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+########################## RUTAS DE ELASTIC FIN ##########################
 
 #### RUTA DE ADMIN ####
 @app.route('/admin')
