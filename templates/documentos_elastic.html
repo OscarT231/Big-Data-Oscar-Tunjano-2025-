@@ -64,12 +64,6 @@
                 </label>
             </div>
 
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="radio" id="radio_zip_pdf" name="metodo_carga" value="zip_pdf">
-                <label class="form-check-label" for="radio_zip_pdf">
-                    <strong>ZIP con PDFs</strong> – Cargar archivos PDF comprimidos
-                </label>
-            </div>
 
         </div>
     </div>
@@ -117,22 +111,6 @@
         </div>
     </div>
 
-    <!-- Opciones zip con pdfs -->
-    <div class="card mb-4" id="opciones_zip_pdf" style="display: none;">
-        <div class="card-body">
-            <h5 class="card-title">3. Cargar Archivo ZIP con PDFs</h5>
-
-            <div class="mb-3">
-                <label for="file_zip_pdf" class="form-label">Seleccionar archivo ZIP con PDFs</label>
-                <input type="file" class="form-control" id="file_zip_pdf" accept=".zip">
-                <div class="form-text">El archivo ZIP debe contener archivos .pdf</div>
-            </div>
-
-            <button type="button" class="btn btn-primary" onclick="procesarZipPDF()">
-                <i class="bi bi-upload"></i> Procesar ZIP con PDFs
-            </button>
-        </div>
-    </div>
 
     <!-- Resultados -->
     <div id="seccion_resultados" style="display:none;">
@@ -215,8 +193,7 @@ function configurarRadioButtons() {
 
             document.getElementById("opciones_zip").style.display = metodoActual === "zip" ? "block" : "none";
             document.getElementById("opciones_webscraping").style.display = metodoActual === "webscraping" ? "block" : "none";
-            document.getElementById("opciones_zip_pdf").style.display = metodoActual === "zip_pdf" ? "block" : "none";
-
+            
             document.getElementById("seccion_resultados").style.display = "none";
         });
     });
@@ -293,29 +270,6 @@ function procesarWebScraping() {
         .then(r => r.json())
         .then(data => manejarRespuestaProcesamiento(data))
         .catch(() => alert("Error al procesar web scraping"))
-        .finally(ocultarCargando);
-}
-
-/* ================================
-   PROCESAR ZIP CON PDF
-================================ */
-function procesarZipPDF() {
-    const file = document.getElementById("file_zip_pdf").files[0];
-    const index = document.getElementById("select_index").value;
-
-    if (!file) return alert("Seleccione un archivo ZIP");
-    if (!index) return alert("Seleccione un índice de destino");
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("index", index);
-
-    mostrarCargando("Procesando archivo ZIP con PDFs...");
-
-    fetch("/procesar-zip-pdf-elastic", { method: "POST", body: formData })
-        .then(r => r.json())
-        .then(data => manejarRespuestaProcesamiento(data))
-        .catch(() => alert("Error al procesar ZIP con PDFs"))
         .finally(ocultarCargando);
 }
 
