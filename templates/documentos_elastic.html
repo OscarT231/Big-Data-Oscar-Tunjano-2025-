@@ -51,21 +51,21 @@
             <div class="form-check mb-3">
                 <input class="form-check-input" type="radio" id="radio_zip_json" name="metodo_carga" value="zip-json" checked>
                 <label class="form-check-label" for="radio_zip_json">
-                    <strong>ZIP con JSON</strong> – Cargar archivos JSON
+                    <strong>ZIP con JSON</strong>
                 </label>
             </div>
 
             <div class="form-check mb-3">
                 <input class="form-check-input" type="radio" id="radio_zip_pdf" name="metodo_carga" value="zip-pdf">
                 <label class="form-check-label" for="radio_zip_pdf">
-                    <strong>ZIP con PDFs</strong> – Cargar archivos PDF
+                    <strong>ZIP con PDFs</strong>
                 </label>
             </div>
 
             <div class="form-check mb-3">
                 <input class="form-check-input" type="radio" id="radio_webscraping" name="metodo_carga" value="webscraping">
                 <label class="form-check-label" for="radio_webscraping">
-                    <strong>Web Scraping</strong> – Extraer y procesar documentos desde web
+                    <strong>Web Scraping</strong>
                 </label>
             </div>
         </div>
@@ -75,13 +75,11 @@
     <div class="card mb-4" id="opciones_zip">
         <div class="card-body">
             <h5 class="card-title">3. Cargar Archivo ZIP</h5>
-
             <div class="mb-3">
-                <label for="file_zip" class="form-label">Seleccionar archivo ZIP con archivos JSON o PDFs</label>
+                <label for="file_zip" class="form-label">Seleccionar archivo ZIP</label>
                 <input type="file" class="form-control" id="file_zip" accept=".zip">
-                <div class="form-text">El archivo ZIP debe contener archivos .json o .pdf</div>
+                <div class="form-text">El archivo ZIP debe contener archivos JSON o PDFs según la selección.</div>
             </div>
-
             <button type="button" class="btn btn-primary" onclick="procesarZip()">
                 <i class="bi bi-upload"></i> Procesar ZIP
             </button>
@@ -92,22 +90,18 @@
     <div class="card mb-4" id="opciones_webscraping" style="display: none;">
         <div class="card-body">
             <h5 class="card-title">3. Configurar Web Scraping</h5>
-
             <div class="mb-3">
                 <label for="url_webscraping" class="form-label">URL para Web Scraping</label>
                 <input type="url" class="form-control" id="url_webscraping" placeholder="https://ejemplo.com/pagina">
             </div>
-
             <div class="mb-3">
                 <label for="extensiones_navegar" class="form-label">Extensiones a Navegar</label>
                 <input type="text" class="form-control" id="extensiones_navegar" value="aspx">
             </div>
-
             <div class="mb-3">
                 <label for="tipos_archivos" class="form-label">Tipos de Archivos a Descargar</label>
                 <input type="text" class="form-control" id="tipos_archivos" value="pdf">
             </div>
-
             <button type="button" class="btn btn-primary" onclick="procesarWebScraping()">
                 <i class="bi bi-download"></i> Iniciar Web Scraping
             </button>
@@ -120,18 +114,15 @@
             <div class="card-body">
                 <h5 class="card-title">4. Archivos Procesados</h5>
                 <div id="info_resultados" class="alert alert-info mb-3"></div>
-
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="seleccionar_todos" onchange="toggleSeleccionarTodos()">
                         <label class="form-check-label" for="seleccionar_todos">Seleccionar Todos</label>
                     </div>
-
                     <button type="button" class="btn btn-success" onclick="cargarSeleccionados()">
                         <i class="bi bi-cloud-upload"></i> <span id="texto_boton_cargar">Cargar Seleccionados</span>
                     </button>
                 </div>
-
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered table-hover">
                         <thead class="table-dark">
@@ -155,7 +146,6 @@
         <div class="spinner-border text-primary" role="status"></div>
         <p class="mt-2" id="mensaje_cargando">Procesando…</p>
     </div>
-
 </div>
 
 <footer class="text-center mt-5">
@@ -182,10 +172,8 @@ function configurarRadioButtons() {
         radio.addEventListener("change", function () {
             metodoActual = this.value;
 
-            // Mostrar sección ZIP si es zip-json o zip-pdf
             document.getElementById("opciones_zip").style.display =
                 metodoActual === "zip-json" || metodoActual === "zip-pdf" ? "block" : "none";
-
             document.getElementById("opciones_webscraping").style.display =
                 metodoActual === "webscraping" ? "block" : "none";
             
@@ -214,7 +202,8 @@ function cargarIndices() {
 }
 
 function procesarZip() {
-    const file = document.getElementById("file_zip").files[0];
+    const fileInput = document.getElementById("file_zip");
+    const file = fileInput.files[0];
     const index = document.getElementById("select_index").value;
 
     if (!file) return alert("Seleccione un archivo ZIP");
@@ -226,6 +215,7 @@ function procesarZip() {
 
     mostrarCargando("Procesando archivo ZIP...");
 
+    // Elegir endpoint según tipo de ZIP
     let endpoint = metodoActual === "zip-pdf"
         ? "/procesar-pdf-zip-elastic"
         : "/procesar-zip-elastic";
@@ -273,10 +263,8 @@ function manejarRespuestaProcesamiento(data) {
 
 function mostrarResultados(data) {
     document.getElementById("seccion_resultados").style.display = "block";
-
     document.getElementById("info_resultados").innerHTML =
         `<strong>Total de archivos:</strong> ${data.archivos.length}<br>` + (data.mensaje || "");
-
     document.getElementById("texto_boton_cargar").textContent =
         metodoActual === "webscraping" ? "PLN/Cargar Seleccionados" : "Cargar Seleccionados";
 
@@ -337,8 +325,7 @@ function cargarSeleccionados() {
 
 function toggleSeleccionarTodos() {
     const estado = document.getElementById("seleccionar_todos").checked;
-    document.querySelectorAll(".archivo-checkbox:not(:disabled)")
-        .forEach(cb => cb.checked = estado);
+    document.querySelectorAll(".archivo-checkbox:not(:disabled)").forEach(cb => cb.checked = estado);
 }
 
 function formatearTamaño(bytes) {

@@ -487,164 +487,109 @@ def procesar_zip_elastic():
 ###RUTA DE SUBIR PDF A ELASTIC###
 @app.route('/procesar-pdf-zip-elastic', methods=['POST'])
 def procesar_pdf_zip_elastic():
-    try:
-        # Validar que se envió un archivo
-        if 'file' not in request.files:
-            return jsonify({"success": False, "error": "No se encontró archivo"}), 400
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "No se encontró archivo"}), 400
 
-        file = request.files['file']
-        index = request.form.get('index', '').strip()
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"success": False, "error": "Archivo sin nombre"}), 400
 
-        if not index:
-            return jsonify({"success": False, "error": "No se seleccionó un índice de destino"}), 400
-
-        if file.filename == '':
-            return jsonify({"success": False, "error": "Archivo sin nombre"}), 400
-
-        if not Funciones.allowed_file(file.filename, ["zip"]):
-            return jsonify({"success": False, "error": "Archivo no permitido, solo ZIP"}), 400
-
-        # Asegurarse de que exista la carpeta de uploads
-        if not os.path.exists(UPLOAD_FOLDER):
-            os.makedirs(UPLOAD_FOLDER)
-
-        # Guardar el archivo ZIP
+    if file and Funciones.allowed_file(file.filename, ["zip"]):
         filename = secure_filename(file.filename)
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
 
-        # Procesar el ZIP y extraer PDFs
-        archivos_procesados = Funciones.procesar_zip_pdfs(filepath)
+        try:
+            # Solo procesar los PDFs del ZIP, sin indexarlos todavía
+            archivos_procesados = Funciones.procesar_zip_pdfs(filepath)  # devuelve lista con {"nombre", "texto", "extension", "tamaño"}
+            return jsonify({"success": True, "archivos": archivos_procesados, "mensaje": f"Se procesaron {len(archivos_procesados)} PDFs."})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
 
-        # Indexar cada documento en Elastic
-        resultados = []
-        for doc in archivos_procesados:
-            try:
-                res = elastic.indexar_documento(index=index, documento={
-                    "nombre": doc.get("nombre"),
-                    "texto": doc.get("texto")
-                })
-                resultados.append({"archivo": doc.get("nombre"), "success": res})
-            except Exception as e:
-                resultados.append({"archivo": doc.get("nombre"), "success": False, "error": str(e)})
+    return jsonify({"success": False, "error": "Archivo no permitido, solo ZIP"}), 400
 
-        return jsonify({"success": True, "archivos": archivos_procesados, "resultados": resultados})
-
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-#### RUTA CARGAR DOCUMENTOS A ELASTIC ###
+#### RUTA CARGAR DOCUMENTOS A ELASTIC ### 
 @app.route('/cargar-documentos-elastic', methods=['POST'])
 def cargar_documentos_elastic():
-    """API para cargar documentos a ElasticSearch"""
+    """API para cargar documentos a ElasticSearch (JSON, PDFs de web scraping o ZIP)"""
     try:
         if not session.get('logged_in'):
             return jsonify({'success': False, 'error': 'No autorizado'}), 401
-        
+
         permisos = session.get('permisos', {})
         if not permisos.get('admin_data_elastic'):
             return jsonify({'success': False, 'error': 'No tiene permisos para cargar datos'}), 403
-        
+
         data = request.get_json()
         archivos = data.get('archivos', [])
         index = data.get('index')
         metodo = data.get('metodo', 'zip')
-        
+
         if not archivos or not index:
             return jsonify({'success': False, 'error': 'Archivos e índice son requeridos'}), 400
-        
+
         documentos = []
-        
-        if metodo == 'zip':
-            # Cargar archivos JSON directamente
-            for archivo in archivos:
-                ruta = archivo.get('ruta')
-                print(f"Procesando archivo JSON: {ruta}")
-                if ruta and os.path.exists(ruta):
-                    doc = Funciones.leer_json(ruta)
-                    print(doc)
-                    if doc:
-                        documentos.append(doc)
-        
-        elif metodo == 'webscraping':
-            # Procesar archivos con PLN
-            #pln = PLN(cargar_modelos=True)
-            
-            for archivo in archivos:
-                ruta = archivo.get('ruta')
-                if not ruta or not os.path.exists(ruta):
-                    continue
-                
-                extension = archivo.get('extension', '').lower()
-                
-                # Extraer texto según tipo de archivo
-                texto = ""
-                if extension == 'pdf':
-                    # Intentar extracción normal
-                    texto = Funciones.extraer_texto_pdf(ruta)
-                    
-                    # Si no se extrajo texto, intentar con OCR
-                    if not texto or len(texto.strip()) < 100:
-                        try:
-                            texto = Funciones.extraer_texto_pdf_ocr(ruta)
-                        except:
-                            pass
-                
-                elif extension == 'txt':
+
+        for archivo in archivos:
+            ruta = archivo.get('ruta')
+            nombre = archivo.get('nombre', '')
+            extension = archivo.get('extension', '').lower()
+
+            if not ruta or not os.path.exists(ruta):
+                continue
+
+            texto = ""
+            if extension == 'json':
+                doc = Funciones.leer_json(ruta)
+                if doc:
+                    documentos.append(doc)
+                continue  # saltar al siguiente archivo
+
+            elif extension == 'pdf':
+                # Intentar extracción normal
+                texto = Funciones.extraer_texto_pdf(ruta)
+                # Si el texto es demasiado corto, intentar OCR
+                if not texto or len(texto.strip()) < 50:
                     try:
-                        with open(ruta, 'r', encoding='utf-8') as f:
+                        texto = Funciones.extraer_texto_pdf_ocr(ruta)
+                    except:
+                        pass
+
+            elif extension == 'txt':
+                try:
+                    with open(ruta, 'r', encoding='utf-8') as f:
+                        texto = f.read()
+                except:
+                    try:
+                        with open(ruta, 'r', encoding='latin-1') as f:
                             texto = f.read()
                     except:
-                        try:
-                            with open(ruta, 'r', encoding='latin-1') as f:
-                                texto = f.read()
-                        except:
-                            pass
-                
-                if not texto or len(texto.strip()) < 50:
-                    continue
-                
-                # Procesar con PLN
-                try:
-                    #resumen = pln.generar_resumen(texto, num_oraciones=3)
-                    #entidades = pln.extraer_entidades(texto)
-                    #temas = pln.extraer_temas(texto, top_n=10)
+                        pass
 
-                    resumen = ""            #borrar en produccion
-                    entidades = ""          #borrar en produccion
-                    temas = ""              #borrar en produccion
-                    
-                    # Crear documento
-                    documento = {
-                        'texto': texto,
-                        'fecha': datetime.now().isoformat(),
-                        'ruta': ruta,
-                        'nombre_archivo': archivo.get('nombre', ''),
-                        'resumen': resumen,
-                        'entidades': entidades,
-                        'temas': [{'palabra': palabra, 'relevancia': relevancia} for palabra, relevancia in temas]
-                    }
-                    
-                    documentos.append(documento)
-                
-                except Exception as e:
-                    print(f"Error al procesar {archivo.get('nombre')}: {e}")
-                    continue
-            
-            #pln.close()
-        
+            if not texto or len(texto.strip()) < 50:
+                continue
+
+            # Crear documento estándar para Elastic
+            documento = {
+                'texto_completo': texto,
+                'nombre_archivo': nombre,
+                'ruta': ruta,
+                'fecha': datetime.now().isoformat()
+            }
+            documentos.append(documento)
+
         if not documentos:
             return jsonify({'success': False, 'error': 'No se pudieron procesar documentos'}), 400
-        
+
         # Indexar documentos en Elastic
         resultado = elastic.indexar_bulk(index, documentos)
-        
+
         return jsonify({
             'success': resultado['success'],
             'indexados': resultado['indexados'],
             'errores': resultado['fallidos']
         })
-        
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
