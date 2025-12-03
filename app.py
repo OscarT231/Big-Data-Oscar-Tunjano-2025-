@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import os
+import zipfile
 from Helpers import MongoDB, ElasticSearch, Funciones, WebScraping
 
 # Cargar variables de entorno
@@ -28,7 +29,7 @@ CREATOR_APP = "OscarDanTR"
 # Inicializar conexiones
 mongo = MongoDB(MONGO_URI, MONGO_DB)
 elastic = ElasticSearch(ELASTIC_CLOUD_ID, ELASTIC_API_KEY)
-
+UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")  # Carpeta "uploads" en tu proyecto
 # ==================== RUTAS ====================
 ####RUTA DE LANDINGN####
 @app.route('/')
@@ -483,6 +484,55 @@ def procesar_zip_elastic():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+###RUTA DE SUBIR PDF A ELASTIC###
+@app.route('/procesar-pdf-zip-elastic', methods=['POST'])
+def procesar_pdf_zip_elastic():
+    try:
+        # Validar que se envió un archivo
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No se encontró archivo"}), 400
+
+        file = request.files['file']
+        index = request.form.get('index', '').strip()
+
+        if not index:
+            return jsonify({"success": False, "error": "No se seleccionó un índice de destino"}), 400
+
+        if file.filename == '':
+            return jsonify({"success": False, "error": "Archivo sin nombre"}), 400
+
+        if not Funciones.allowed_file(file.filename, ["zip"]):
+            return jsonify({"success": False, "error": "Archivo no permitido, solo ZIP"}), 400
+
+        # Asegurarse de que exista la carpeta de uploads
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+
+        # Guardar el archivo ZIP
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        # Procesar el ZIP y extraer PDFs
+        archivos_procesados = Funciones.procesar_zip_pdfs(filepath)
+
+        # Indexar cada documento en Elastic
+        resultados = []
+        for doc in archivos_procesados:
+            try:
+                res = elastic.indexar_documento(index=index, documento={
+                    "nombre": doc.get("nombre"),
+                    "texto": doc.get("texto")
+                })
+                resultados.append({"archivo": doc.get("nombre"), "success": res})
+            except Exception as e:
+                resultados.append({"archivo": doc.get("nombre"), "success": False, "error": str(e)})
+
+        return jsonify({"success": True, "archivos": archivos_procesados, "resultados": resultados})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 #### RUTA CARGAR DOCUMENTOS A ELASTIC ###
 @app.route('/cargar-documentos-elastic', methods=['POST'])
 def cargar_documentos_elastic():
@@ -597,7 +647,6 @@ def cargar_documentos_elastic():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 ########################## RUTAS DE ELASTIC FIN ##########################
 

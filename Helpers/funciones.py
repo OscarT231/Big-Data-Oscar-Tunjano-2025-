@@ -275,4 +275,48 @@ class Funciones:
             print(f"Error al guardar JSON: {e}")
             return False
         
-    
+    @staticmethod
+    def procesar_zip_pdfs(zip_path: str, carpeta_temporal: str = "temp") -> list:
+        """
+        Procesa un ZIP con PDFs, extrae texto de cada PDF usando las funciones de la clase y devuelve lista de diccionarios.
+
+        Args:
+            zip_path (str): Ruta del archivo ZIP.
+            carpeta_temporal (str): Carpeta temporal donde se extraerán los archivos.
+
+        Returns:
+            List[Dict]: Lista de dicts con 'nombre', 'texto', 'ruta' y opcional 'error'.
+        """
+        # Crear carpeta temporal si no existe
+        Funciones.crear_carpeta(carpeta_temporal)
+
+        # Limpiar carpeta temporal
+        Funciones.borrar_contenido_carpeta(carpeta_temporal)
+
+        # Descomprimir ZIP y obtener info de PDFs
+        archivos_extraidos = Funciones.descomprimir_zip_local(zip_path, carpeta_temporal)
+
+        resultados = []
+
+        for archivo in archivos_extraidos:
+            if archivo['extension'] == '.pdf':
+                try:
+                    texto = Funciones.extraer_texto_pdf(archivo['ruta'])
+                    # Si no se extrajo texto, intentar OCR
+                    if not texto.strip():
+                        texto = Funciones.extraer_texto_pdf_ocr(archivo['ruta'])
+
+                    resultados.append({
+                        "nombre": archivo['nombre'],
+                        "texto": texto,
+                        "ruta": archivo['ruta']
+                    })
+                except Exception as e:
+                    resultados.append({
+                        "nombre": archivo['nombre'],
+                        "texto": "",
+                        "ruta": archivo['ruta'],
+                        "error": str(e)
+                    })
+
+        return resultados

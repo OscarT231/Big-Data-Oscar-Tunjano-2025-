@@ -43,17 +43,22 @@
         </div>
     </div>    
 
-    
-
     <!-- Selección de método -->
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">2. Seleccionar Método de Carga</h5>
 
             <div class="form-check mb-3">
-                <input class="form-check-input" type="radio" id="radio_zip" name="metodo_carga" value="zip" checked>
-                <label class="form-check-label" for="radio_zip">
-                    <strong>ZIP con JSON</strong> – Cargar archivos JSON comprimidos
+                <input class="form-check-input" type="radio" id="radio_zip_json" name="metodo_carga" value="zip-json" checked>
+                <label class="form-check-label" for="radio_zip_json">
+                    <strong>ZIP con JSON</strong> – Cargar archivos JSON
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="radio" id="radio_zip_pdf" name="metodo_carga" value="zip-pdf">
+                <label class="form-check-label" for="radio_zip_pdf">
+                    <strong>ZIP con PDFs</strong> – Cargar archivos PDF
                 </label>
             </div>
 
@@ -63,8 +68,6 @@
                     <strong>Web Scraping</strong> – Extraer y procesar documentos desde web
                 </label>
             </div>
-
-
         </div>
     </div>
 
@@ -74,9 +77,9 @@
             <h5 class="card-title">3. Cargar Archivo ZIP</h5>
 
             <div class="mb-3">
-                <label for="file_zip" class="form-label">Seleccionar archivo ZIP con archivos JSON</label>
+                <label for="file_zip" class="form-label">Seleccionar archivo ZIP con archivos JSON o PDFs</label>
                 <input type="file" class="form-control" id="file_zip" accept=".zip">
-                <div class="form-text">El archivo ZIP debe contener archivos .json</div>
+                <div class="form-text">El archivo ZIP debe contener archivos .json o .pdf</div>
             </div>
 
             <button type="button" class="btn btn-primary" onclick="procesarZip()">
@@ -111,16 +114,13 @@
         </div>
     </div>
 
-
     <!-- Resultados -->
     <div id="seccion_resultados" style="display:none;">
         <div class="card mb-4">
             <div class="card-body">
-
                 <h5 class="card-title">4. Archivos Procesados</h5>
                 <div id="info_resultados" class="alert alert-info mb-3"></div>
 
-                <!-- Seleccionar todos -->
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="seleccionar_todos" onchange="toggleSeleccionarTodos()">
@@ -167,48 +167,39 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-/* ================================
-   VARIABLES
-================================ */
 let archivosActuales = [];
-let metodoActual = "zip";
+let metodoActual = "zip-json";
 
 document.getElementById("current-year").textContent = new Date().getFullYear();
 
-/* ================================
-   INICIO
-================================ */
 document.addEventListener("DOMContentLoaded", () => {
     cargarIndices();
     configurarRadioButtons();
 });
 
-/* ================================
-   RADIO BUTTONS
-================================ */
 function configurarRadioButtons() {
     document.querySelectorAll('input[name="metodo_carga"]').forEach(radio => {
         radio.addEventListener("change", function () {
             metodoActual = this.value;
 
-            document.getElementById("opciones_zip").style.display = metodoActual === "zip" ? "block" : "none";
-            document.getElementById("opciones_webscraping").style.display = metodoActual === "webscraping" ? "block" : "none";
+            // Mostrar sección ZIP si es zip-json o zip-pdf
+            document.getElementById("opciones_zip").style.display =
+                metodoActual === "zip-json" || metodoActual === "zip-pdf" ? "block" : "none";
+
+            document.getElementById("opciones_webscraping").style.display =
+                metodoActual === "webscraping" ? "block" : "none";
             
             document.getElementById("seccion_resultados").style.display = "none";
         });
     });
 }
 
-/* ================================
-   CARGAR ÍNDICES
-================================ */
 function cargarIndices() {
     fetch("/listar-indices-elastic")
         .then(r => r.json())
         .then(indices => {
             const select = document.getElementById("select_index");
             select.innerHTML = '<option value="">Seleccione un índice</option>';
-
             indices.forEach(ind => {
                 const opt = document.createElement("option");
                 opt.value = ind.nombre;
@@ -222,9 +213,6 @@ function cargarIndices() {
         });
 }
 
-/* ================================
-   PROCESAR ZIP
-================================ */
 function procesarZip() {
     const file = document.getElementById("file_zip").files[0];
     const index = document.getElementById("select_index").value;
@@ -238,16 +226,17 @@ function procesarZip() {
 
     mostrarCargando("Procesando archivo ZIP...");
 
-    fetch("/procesar-zip-elastic", { method: "POST", body: formData })
+    let endpoint = metodoActual === "zip-pdf"
+        ? "/procesar-pdf-zip-elastic"
+        : "/procesar-zip-elastic";
+
+    fetch(endpoint, { method: "POST", body: formData })
         .then(r => r.json())
         .then(data => manejarRespuestaProcesamiento(data))
         .catch(() => alert("Error al procesar ZIP"))
         .finally(ocultarCargando);
 }
 
-/* ================================
-   PROCESAR SCRAPING
-================================ */
 function procesarWebScraping() {
     const index = document.getElementById("select_index").value;
     const url = document.getElementById("url_webscraping").value.trim();
@@ -273,29 +262,20 @@ function procesarWebScraping() {
         .finally(ocultarCargando);
 }
 
-
-/* ================================
-   MANEJO DE RESPUESTAS
-================================ */
 function manejarRespuestaProcesamiento(data) {
     if (!data.success) {
         alert("Error: " + (data.error || "Error desconocido"));
         return;
     }
-
     archivosActuales = data.archivos;
     mostrarResultados(data);
 }
 
-/* ================================
-   MOSTRAR RESULTADOS
-================================ */
 function mostrarResultados(data) {
     document.getElementById("seccion_resultados").style.display = "block";
 
     document.getElementById("info_resultados").innerHTML =
-        `<strong>Total de archivos:</strong> ${data.archivos.length}<br>` +
-        (data.mensaje || "");
+        `<strong>Total de archivos:</strong> ${data.archivos.length}<br>` + (data.mensaje || "");
 
     document.getElementById("texto_boton_cargar").textContent =
         metodoActual === "webscraping" ? "PLN/Cargar Seleccionados" : "Cargar Seleccionados";
@@ -317,9 +297,6 @@ function mostrarResultados(data) {
     document.getElementById("seccion_resultados").scrollIntoView({ behavior: "smooth" });
 }
 
-/* ================================
-   CARGAR SELECCIONADOS
-================================ */
 function cargarSeleccionados() {
     const index = document.getElementById("select_index").value;
     if (!index) return alert("Seleccione un índice de destino");
@@ -345,7 +322,6 @@ function cargarSeleccionados() {
 
             alert(`Carga completada:\n- Documentos indexados: ${data.indexados}\n- Errores: ${data.errores}`);
 
-            // Cambiar estado a "cargado"
             document.querySelectorAll(".archivo-checkbox:checked").forEach(cb => {
                 const row = cb.closest("tr");
                 row.querySelector("td:last-child span").className = "badge bg-success";
@@ -359,18 +335,12 @@ function cargarSeleccionados() {
         .finally(ocultarCargando);
 }
 
-/* ================================
-   CHECKBOX: SELECCIONAR TODOS
-================================ */
 function toggleSeleccionarTodos() {
     const estado = document.getElementById("seleccionar_todos").checked;
     document.querySelectorAll(".archivo-checkbox:not(:disabled)")
         .forEach(cb => cb.checked = estado);
 }
 
-/* ================================
-   UTILS
-================================ */
 function formatearTamaño(bytes) {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -391,6 +361,3 @@ function ocultarCargando() {
 
 </body>
 </html>
-
-
-
