@@ -1,0 +1,125 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-us" dir="ltr">
+<head><meta name="GENERATOR" content="Microsoft SharePoint" /><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><meta http-equiv="Expires" content="0" /><meta http-equiv="X-UA-Compatible" content="IE=8"/><meta name="ROBOTS" content="NOHTMLINDEX" /><title>
+	
+	Inicio de sesión
+
+</title><link rel="stylesheet" type="text/css" href="/_layouts/15/1033/styles/corev15.css?rev=WBDzE8Kp2NMrldHsGGXlEQ%3D%3D"/>
+<link rel="stylesheet" type="text/css" href="/_layouts/15/1033/styles/error.css?rev=nc1850SZNy60qTAeQIRxsA%3D%3D"/>
+<script type="text/javascript" src="/_layouts/15/init.js?rev=AS%2Bv0UYCkcLYkV95cqJXGA%3D%3D"></script>
+<script type="text/javascript" src="/ScriptResource.axd?d=dWWgps9unUiDbW9tiRRjVMZ9gdlMOc_mEaFtIQjYXVIBkd64IaOnl3z55HkQ2FgjJOPRoRI-GJv18UDb_CHaunz5m1MgRy01aeWtC_fTXI6Hpv2CjIOFCn2wTV6eOsnkpkSzzwpg2i0EcCsgzzcMx0KNkapqnt8b_iE2ZMD5S-F1gw5t-GdQ1THHs_fGo1ZO0&amp;t=5d0a842b"></script>
+<script type="text/javascript" src="/_layouts/15/blank.js?rev=ZaOXZEobVwykPO9g8hq%2F8A%3D%3D"></script>
+<script type="text/javascript" src="/ScriptResource.axd?d=ocYCaq23xx7mLdCT1rkqzh7Ss6ZISEtNcHVkbRF0xdbykLBrSslWwLfSUp3bY-O1LJGi1rgHyMGUYT1DV7kDZz_mbJkDI4qOs3sF3g9hJsKq_LhhhBc-GZIcXrnBE-lKoLc2ghSlMyR61zNsPeNFTXAw5s0JC3Dj8vdilf23mWiiqWLnD2vwZ4ckv_OAus-y0&amp;t=5d0a842b"></script>
+<script type="text/javascript">RegisterSod("initstrings.js", "\u002f_layouts\u002f15\u002f3082\u002finitstrings.js?rev=xRSjQMOnLcXmUAxvGVLVxw\u00253D\u00253D");</script>
+<script type="text/javascript">RegisterSod("strings.js", "\u002f_layouts\u002f15\u002f3082\u002fstrings.js?rev=v0x4hRhBRzFQIHVSna\u00252Fz3g\u00253D\u00253D");RegisterSodDep("strings.js", "initstrings.js");</script>
+<script type="text/javascript">RegisterSod("sp.init.js", "\u002f_layouts\u002f15\u002fsp.init.js?rev=jvJC3Kl5gbORaLtf7kxULQ\u00253D\u00253D");</script>
+<script type="text/javascript">RegisterSod("sp.res.resx", "\u002f_layouts\u002f15\u002fScriptResx.ashx?culture=es\u00252Des\u0026name=SP\u00252ERes\u0026rev=DoAHv8R6TO7rl33LcYBJTA\u00253D\u00253D");</script>
+<script type="text/javascript">RegisterSod("sp.ui.dialog.js", "\u002f_layouts\u002f15\u002fsp.ui.dialog.js?rev=3Oh2QbaaiXSb7ldu2zd6QQ\u00253D\u00253D");RegisterSodDep("sp.ui.dialog.js", "sp.init.js");RegisterSodDep("sp.ui.dialog.js", "sp.res.resx");</script>
+<script type="text/javascript">RegisterSod("core.js", "\u002f_layouts\u002f15\u002fcore.js?rev=BoOTONqXW5dYCwvqGhdhCw\u00253D\u00253D");RegisterSodDep("core.js", "strings.js");</script>
+<link rel="shortcut icon" href="/_layouts/15/images/favicon.ico?rev=23" type="image/vnd.microsoft.icon" /></head>
+<body id="ms-error-body" onload="if (typeof(_spBodyOnLoadWrapper) != 'undefined') _spBodyOnLoadWrapper();">
+	<form method="post" action="./default.aspx?ReturnUrl=%2fMinisterio%2fInstitucional%2f_layouts%2f15%2fAuthenticate.aspx%3fSource%3d%252FMinisterio%252FInstitucional%252FDocuments%252Fdefensa-legal%252Fprovidencia-tribunal-administrativo-cundinamarca-jun-2018.pdf&amp;Source=%2fMinisterio%2fInstitucional%2fDocuments%2fdefensa-legal%2fprovidencia-tribunal-administrativo-cundinamarca-jun-2018.pdf" id="aspnetForm" onsubmit="if (typeof(_spFormOnSubmitWrapper) != &#39;undefined&#39;) {return _spFormOnSubmitWrapper();} else {return true;}">
+<div class="aspNetHidden">
+<input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="" />
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTEwMTU3NDUzNjUPZBYCZg9kFgICAQ9kFgQCAQ9kFgICBQ9kFgJmD2QWAgIBDxYCHgRUZXh0BRFJbmljaW8gZGUgc2VzacOzbmQCAw9kFgoCAw9kFgICAQ8WAh8ABRFJbmljaW8gZGUgc2VzacOzbmQCBQ8WAh4HVmlzaWJsZWhkAgcPFgIfAWhkAgkPZBYCAgEPZBYKZg8WAh8ABVxTZWxlY2Npb25lIGxhcyBjcmVkZW5jaWFsZXMgcXVlIGRlc2VhIHVzYXIgcGFyYSBpbmljaWFyIHNlc2nDs24gZW4gZXN0ZSBzaXRpbyBkZSBTaGFyZVBvaW50OmQCAQ8PFgIfAAVcU2VsZWNjaW9uZSBsYXMgY3JlZGVuY2lhbGVzIHF1ZSBkZXNlYSB1c2FyIHBhcmEgaW5pY2lhciBzZXNpw7NuIGVuIGVzdGUgc2l0aW8gZGUgU2hhcmVQb2ludDpkZAICDxAPFgIeDEF1dG9Qb3N0QmFja2dkDxYDZgIBAgIWAxBlBQRub25lZxAFGUF1dGVudGljYWNpw7NuIGRlIFdpbmRvd3MFB1dpbmRvd3NnEAUdQXV0ZW50aWNhY2nDs24gZGUgZm9ybXVsYXJpb3MFBUZvcm1zZxYBZmQCAw8PFgIfAAUGU2VsZWN0ZGQCBA8PFgIfAAUGU2VsZWN0ZGQCCw8WAh8BaGRk4KGyxWt6v604mPkc0F/OHuctJk5m1E2SX/GTutrpjS0=" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['aspnetForm'];
+if (!theForm) {
+    theForm = document.aspnetForm;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/WebResource.axd?d=3fXmFJp6ofakUYLeixJPR0Jnu1noXEZjMnS-T1u4bjdxmKoAVilhBU8iD1LZB6wNxwKWriZj3aILcU03HnhS4lXOXt9b-c8_LoEi7MOU5wU1&amp;t=638259182771233176" type="text/javascript"></script>
+
+
+<script type="text/javascript">
+//<![CDATA[
+var g_presenceEnabled = true;
+var g_wsaEnabled = false;
+var g_wsaQoSEnabled = false;
+var g_wsaQoSDataPoints = [];
+var g_wsaLCID = 3082;
+var g_wsaListTemplateId = null;
+var g_wsaSiteTemplateId = 'STS#0';
+var _fV4UI=true;var _spPageContextInfo = {webServerRelativeUrl: "\u002f", webAbsoluteUrl: "https:\u002f\u002fwww.minsalud.gov.co", siteAbsoluteUrl: "https:\u002f\u002fwww.minsalud.gov.co", serverRequestPath: "\u002f_login\u002fdefault.aspx", layoutsUrl: "_layouts\u002f15", webTitle: "Ministerio de Salud y Protecci\u00F3n Social", webTemplate: "1", tenantAppVersion: "0", isAppWeb: false, Has2019Era: true, webLogoUrl: "_layouts\u002f15\u002fimages\u002fsiteicon.png", webLanguage: 3082, currentLanguage: 3082, currentUICultureName: "es-ES", currentCultureName: "es-ES", clientServerTimeDelta: new Date("2025-12-03T06:10:44.1344259Z") - new Date(), siteClientTag: "2278$$15.0.5353.1000", crossDomainPhotosEnabled:false, webUIVersion:15, webPermMasks:{High:16,Low:200769}, pagePersonalizationScope:1, alertsEnabled:true, siteServerRelativeUrl: "\u002f", allowSilverlightPrompt:'True'};var MSOWebPartPageFormName = 'aspnetForm';//]]>
+</script>
+
+<script src="/_layouts/15/blank.js?rev=ZaOXZEobVwykPO9g8hq%2F8A%3D%3D" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(DeferWebFormInitCallback) == 'function') DeferWebFormInitCallback();//]]>
+</script>
+
+<script src="/WebResource.axd?d=K7H4lwmg4dE6lTrTjzFYgVTKiQKAfTxeoRm6TaQsKfxYzmXOH05eNMPWtwN9zIIMOCzSxbpnlzWZJuAMx1pFJurj-EZeRcQ6tDgK9jcAvP81&amp;t=638259182771233176" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="C551C3B1" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="/wEdAAWhcJnOJRfZgd2Xrq3zvodTh9PBSCY5wOnniQG3+y2Lr7uEwyxAXMsPcfHE0GnBGatahTlOS4wU1Axe5z34BmsrUgZPkl4UXN4SISzHUxiFuO203cUNCXIAKtdg9n/q57NJmI5RQEarBZLstQ+Sgw0S" />
+</div>
+	<script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$ScriptManager', 'aspnetForm', [], [], [], 90, 'ctl00');
+//]]>
+</script>
+
+	<div id="ms-error-header" class="ms-pr">
+		<h1 class="ms-core-pageTitle">
+			
+	Inicio de sesión
+
+		</h1>
+		<div>
+			
+		</div>
+	</div>
+	<div id="ms-error">
+		<div id="ms-error-top">
+			
+		</div>
+		<div id="ms-error-content">
+			<div id="ms-error-error-content">
+				<div id="DeltaPlaceHolderMain">
+	
+					
+Seleccione las credenciales que desea usar para iniciar sesión en este sitio de SharePoint:
+<label for="ctl00_PlaceHolderMain_ClaimsLogonSelector" id="ctl00_PlaceHolderMain_ClaimsLogonSelectorLabel" class="ms-hidden">Seleccione las credenciales que desea usar para iniciar sesión en este sitio de SharePoint:</label>
+<br />
+<br />
+<select name="ctl00$PlaceHolderMain$ClaimsLogonSelector" onchange="javascript:setTimeout(&#39;__doPostBack(\&#39;ctl00$PlaceHolderMain$ClaimsLogonSelector\&#39;,\&#39;\&#39;)&#39;, 0)" id="ctl00_PlaceHolderMain_ClaimsLogonSelector" Name="ClaimsLogonSelector">
+		<option selected="selected" value="none"></option>
+		<option value="Windows">Autenticaci&#243;n de Windows</option>
+		<option value="Forms">Autenticaci&#243;n de formularios</option>
+
+	</select>
+
+				
+</div>
+			</div>
+			
+		</div>
+	</div>
+
+
+<script type="text/javascript">
+//<![CDATA[
+var _fV4UI = true;WebForm_AutoFocus('ctl00_PlaceHolderMain_ClaimsLogonSelector');//]]>
+</script>
+</form>
+</body>
+</html>
