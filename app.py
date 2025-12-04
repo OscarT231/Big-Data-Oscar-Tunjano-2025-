@@ -68,49 +68,56 @@ def buscar_elastic():
                 "bool": {
                     "must": [
                         {
-                            "match_phrase": {        # ***COINCIDENCIA EXACTA POR FRASE***
-                                "texto_completo": {
-                                    "query": texto_buscar,
-                                    "slop": 1              # tolerancia mínima
-                                }
-                            }
-                        }
-                    ],
-                    "should": [
-                        {
                             "match_phrase": {
-                                "titulo": {
+                                "texto_completo": {
                                     "query": texto_buscar,
                                     "slop": 1
                                 }
                             }
                         }
                     ],
-                    "minimum_should_match": 0
                 }
             },
+            "size": 50,
             "highlight": {
                 "fields": {
                     "texto_completo": {},
                     "titulo": {}
                 }
+            },
+            "aggs": {
+                "por_extension": {
+                    "terms": {"field": "tipo_documento.keyword", "size": 20}
+                },
+                "por_archivo": {
+                    "terms": {"field": "titulo.keyword", "size": 20}
+                },
+                "por_año": {
+                    "date_histogram": {
+                        "field": "fecha_extraccion",
+                        "calendar_interval": "year"
+                    }
+                }
             }
         }
 
-        respuesta = cliente.search(index="index_proyecto", body=query, size=50)
 
+        respuesta = cliente.search(index="index_proyecto", body=query)
+
+        # EXTRAER AGREGACIONES
         hits = respuesta.get("hits", {}).get("hits", [])
         total = respuesta.get("hits", {}).get("total", {}).get("value", 0)
+        aggs = respuesta.get("aggregations", {})
 
         return jsonify({
             "success": True,
             "total": total,
-            "hits": hits
+            "hits": hits,
+            "aggs": aggs   # <--- ESTO ES LO QUE FALTABA
         })
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 ############## RUTAS DE BUSCADOR EN ELASTIC FIN #################
 
